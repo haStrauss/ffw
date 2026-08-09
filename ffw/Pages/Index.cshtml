@@ -4,7 +4,163 @@
     ViewData["Title"] = "Home page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Servus</h1>
-    <p>Die Website befindet sich gerade in Bearbeitung...</a>.</p>
-</div>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feuerwehr Walting – Website im Aufbau</title>
+    <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            html, body {
+                height: 100%;
+                font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            }
+
+            body {
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                background: url('images/feuerwehr-hintergrund.jpg') center center / cover no-repeat;
+                overflow: hidden;
+            }
+
+                /* Dunkler Verlauf über dem Bild für bessere Lesbarkeit */
+                body::before {
+                    content: "";
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient( to bottom, rgba(10, 15, 25, 0.55) 0%, rgba(10, 15, 25, 0.35) 40%, rgba(10, 15, 25, 0.75) 100% );
+                    z-index: 1;
+                }
+
+            .content {
+                position: relative;
+                z-index: 2;
+                text-align: center;
+                transform:translateY(-25vh);
+                color: #ffffff;
+                padding: 2rem 1.5rem 2rem 10rem;
+                margin: 0rem 0rem 0rem 5rem;
+                max-width: 700px;
+            }
+
+            .badge {
+                display: inline-block;
+                background: rgba(198, 27, 33, 0.95);
+                color: #fff;
+                font-weight: 700;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                font-size: 0.8rem;
+                padding: 0.5rem 1.2rem;
+                border-radius: 999px;
+                margin-bottom: 1.5rem;
+                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+            }
+
+            h1 {
+                font-size: clamp(1.8rem, 5vw, 3rem);
+                font-weight: 700;
+                margin-bottom: 0.8rem;
+                text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+            }
+
+            p.subtitle {
+                font-size: clamp(1rem, 2.2vw, 1.3rem);
+                font-weight: 400;
+                line-height: 1.6;
+                color: rgba(255, 255, 255, 0.92);
+                text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+                margin-bottom: 2.2rem;
+            }
+
+            .progress-wrap {
+                width: 100%;
+                max-width: 380px;
+                margin: 0 auto 2rem auto;
+            }
+
+            .progress-track {
+                width: 100%;
+                height: 8px;
+                background: rgba(255, 255, 255, 0.25);
+                border-radius: 999px;
+                overflow: hidden;
+            }
+
+            .progress-fill {
+                height: 100%;
+                width: 45%;
+                background: linear-gradient(90deg, #c61b21, #e8434a);
+                border-radius: 999px;
+                animation: pulse 2.4s ease-in-out infinite;
+            }
+
+            @@keyframes pulse {
+                0%, 100% {
+                    opacity: 1;
+                }
+
+                50% {
+                    opacity: 0.6;
+                }
+            }
+
+            .footer-note {
+                font-size: 0.9rem;
+                color: rgba(255, 255, 255, 0.75);
+                text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+            }
+
+                .footer-note a {
+                    color: #ffffff;
+                    font-weight: 600;
+                    text-decoration: none;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+                    transition: border-color 0.2s ease;
+                }
+
+                    .footer-note a:hover {
+                        border-color: #ffffff;
+                    }
+
+            @@media (max-width: 480px) {
+                .content {
+                    padding: 1.5rem 1rem;
+                }
+            }
+    </style>
+</head>
+<body>
+
+    <div class="content">
+        <span class="badge">Website im Aufbau</span>
+        <h1>Wir sind bald für Sie da</h1>
+        <p class="subtitle">
+            Die neue Website der Feuerwehr befindet sich derzeit im Aufbau.<br>
+            Schauen Sie in Kürze wieder vorbei.
+        </p>
+
+        <div class="progress-wrap">
+            <div class="progress-track">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+
+        <p class="footer-note">
+            Bei Ideen zur Gestaltung dieser Website bite an 
+            <a href="mailto:hannes.strauss@gmx.de">per E-Mail</a>.
+        </p>
+    </div>
+
+</body>
+</html>
+
