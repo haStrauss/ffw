@@ -1,0 +1,72 @@
+@page "/kostenuhr"
+@model KostenuhrModel
+@{
+    // Eigenständige Seite ohne das gemeinsame Layout.
+    // Sie ist nirgends verlinkt und nur über die URL /kostenuhr erreichbar.
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#0F2A3D" />
+    <title>Kostenuhr</title>
+    <link rel="stylesheet" href="~/css/kostenuhr.css" asp-append-version="true" />
+</head>
+<body>
+    <main class="app">
+
+        <nav class="tabs" role="tablist">
+            <button type="button" class="tab active" id="tab-main" role="tab" aria-selected="true" aria-controls="view-main">Kostenuhr</button>
+            <button type="button" class="tab" id="tab-settings" role="tab" aria-selected="false" aria-controls="view-settings">Einstellungen</button>
+        </nav>
+
+        <!-- Hauptansicht -->
+        <section id="view-main" class="view" role="tabpanel" aria-labelledby="tab-main">
+            <div class="ring-area">
+                <div class="ring" id="ring">
+                    <!-- Ring startet bei 12 Uhr (0) und waechst im Uhrzeigersinn -->
+                    <svg viewBox="0 0 300 300" aria-hidden="true">
+                        <circle class="ring-track" cx="150" cy="150" r="120" />
+                        <circle class="ring-progress" id="ring-progress" cx="150" cy="150" r="120"
+                                transform="rotate(-90 150 150)" />
+                    </svg>
+                    <div class="ring-center">
+                        <div class="amount" id="amount" aria-live="off">0,00 €</div>
+                        <div class="elapsed" id="elapsed">00:00:00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="row">
+                    <button type="button" id="btn-start" class="btn btn-start">Start</button>
+                    <button type="button" id="btn-stop" class="btn btn-stop" disabled>Stopp</button>
+                </div>
+                <button type="button" id="btn-reset" class="btn btn-ghost">Zurücksetzen</button>
+            </div>
+        </section>
+
+        <!-- Einstellungen -->
+        <section id="view-settings" class="view" role="tabpanel" aria-labelledby="tab-settings" hidden>
+            <div class="settings">
+                <label for="in-count">Anzahl Mitarbeiter</label>
+                <input id="in-count" type="text" inputmode="numeric" autocomplete="off" placeholder="z. B. 5" />
+
+                <label for="in-rate">Ø Kosten pro Mitarbeiter und Stunde (€)</label>
+                <input id="in-rate" type="text" inputmode="decimal" autocomplete="off" placeholder="z. B. 60" />
+
+                <label for="in-goal">Ring-Ziel: Betrag für einen vollen Kreis (€)</label>
+                <input id="in-goal" type="text" inputmode="decimal" autocomplete="off" placeholder="z. B. 100" />
+
+                <p class="summary" id="summary"></p>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="~/js/kostenuhr.js" asp-append-version="true"></script>
+</body>
+</html>
