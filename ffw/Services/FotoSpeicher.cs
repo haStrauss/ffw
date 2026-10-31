@@ -61,8 +61,12 @@ public sealed class FotoSpeicher
             var id = Guid.NewGuid();
             try
             {
-                await SchreibenAsync(image, MaxKanteGross, 85, PfadGross(id), ct);
-                await SchreibenAsync(image, MaxKanteVorschau, 78, PfadVorschau(id), ct);
+                // Das Bild wird nacheinander verkleinert: erst Großansicht, dann (aus dieser) die Vorschau.
+                VerkleinernAufMaxKante(image, MaxKanteGross);
+                await image.SaveAsJpegAsync(PfadGross(id), new JpegEncoder { Quality = 85 }, ct);
+
+                VerkleinernAufMaxKante(image, MaxKanteVorschau);
+                await image.SaveAsJpegAsync(PfadVorschau(id), new JpegEncoder { Quality = 78 }, ct);
             }
             catch
             {
@@ -89,24 +93,17 @@ public sealed class FotoSpeicher
         }
     }
 
-    private static async Task SchreibenAsync(Image quelle, int maxKante, int qualitaet, string pfad, CancellationToken ct)
+    /// <summary>Verkleinert das Bild direkt (ohne Kopie), falls eine Kante länger als maxKante ist. Vergrößert nie.</summary>
+    private static void VerkleinernAufMaxKante(Image bild, int maxKante)
     {
-        using var kopie = Verkleinert(quelle, maxKante);
-        await kopie.SaveAsJpegAsync(pfad, new JpegEncoder { Quality = qualitaet }, ct);
-    }
-
-    private static Image Verkleinert(Image quelle, int maxKante)
-    {
-        if (quelle.Width <= maxKante && quelle.Height <= maxKante)
+        if (bild.Width <= maxKante && bild.Height <= maxKante)
         {
-            return quelle.Clone();
+            return;
         }
 
-        var faktor = (double)maxKante / Math.Max(quelle.Width, quelle.Height);
-        var breite = Math.Max(1, (int)Math.Round(quelle.Width * faktor));
-        var hoehe = Math.Max(1, (int)Math.Round(quelle.Height * faktor));
-        var kopie = quelle.Clone();
-        kopie.Mutate(x => x.Resize(breite, hoehe));
-        return kopie;
+        var faktor = (double)maxKante / Math.Max(bild.Width, bild.Height);
+        var breite = Math.Max(1, (int)Math.Round(bild.Width * faktor));
+        var hoehe = Math.Max(1, (int)Math.Round(bild.Height * faktor));
+        bild.Mutate(x => x.Resize(breite, hoehe));
     }
 }
