@@ -105,6 +105,8 @@ public sealed class FotoSpeicher
         var faktor = (double)maxKante / Math.Max(quelle.Width, quelle.Height);
         var breite = Math.Max(1, (int)Math.Round(quelle.Width * faktor));
         var hoehe = Math.Max(1, (int)Math.Round(quelle.Height * faktor));
-        return quelle.Clone(x => x.Resize(breite, hoehe));
+        var kopie = quelle.Clone();
+        kopie.Mutate(x => x.Resize(breite, hoehe));
+        return kopie;
     }
 }
