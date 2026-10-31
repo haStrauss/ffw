@@ -88,5 +88,5 @@ static IResult FotoDatei(HttpContext context, string pfad)
 
     context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
     context.Response.Headers.XContentTypeOptions = "nosniff";
-    return Results.PhysicalFile(pfad, "image/jpeg");
+    return Results.File(pfad, "image/jpeg");
 }
