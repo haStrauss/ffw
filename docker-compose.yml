@@ -10,10 +10,13 @@ services:
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres-db;Database=ffwdb;Username=ffwuser;Password=${POSTGRES_PASSWORD}
       - Fotos__Speicherpfad=/app/data/fotos
+      - DataProtection__Pfad=/app/data/keys
+      - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
       - Admin__Email=${ADMIN_EMAIL:-}
       - Admin__Password=${ADMIN_PASSWORD:-}
     volumes:
       - fotos:/app/data/fotos
+      - keys:/app/data/keys
     depends_on:
       - db
     networks:
@@ -39,3 +42,4 @@ networks:
 volumes:
   pgdata:
   fotos:
+  keys:

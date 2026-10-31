@@ -1,5 +1,6 @@
 using ffw.Data;
 using ffw.Services;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,8 +29,17 @@ builder.Services
     .AddEntityFrameworkStores<AppDbContext>()
     .AddSignInManager();
 
+// Die Schlüssel für Login-Cookies und Antiforgery-Token müssen einen Neustart/Deploy des Containers überleben,
+// sonst wären nach jedem Deploy alle angemeldeten Benutzer abgemeldet. Der Pfad liegt in einem Docker-Volume.
+builder.Services.AddDataProtection()
+    .SetApplicationName("ffw")
+    .PersistKeysToFileSystem(new DirectoryInfo(
+        builder.Configuration["DataProtection:Pfad"]
+        ?? Path.Combine(builder.Environment.ContentRootPath, "data", "keys")));
+
 // Hinter dem Reverse Proxy sieht die Anwendung nur HTTP. Deshalb wird das Secure-Flag
-// der Cookies in Produktion immer gesetzt statt vom Request abgeleitet.
+// des Login-Cookies in Produktion immer gesetzt statt vom Request abgeleitet. Für das Antiforgery-Cookie
+// ist das nicht möglich (es wirft bei Always eine Exception, wenn die Anfrage selbst kein HTTPS ist).
 var cookieSecurePolicy = builder.Environment.IsDevelopment()
     ? CookieSecurePolicy.SameAsRequest
     : CookieSecurePolicy.Always;
@@ -46,7 +56,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
 });
 
-builder.Services.AddAntiforgery(options => options.Cookie.SecurePolicy = cookieSecurePolicy);
+builder.Services.AddAntiforgery(options => options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest);
 
 var app = builder.Build();
 
