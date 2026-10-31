@@ -1,0 +1,44 @@
+@page "/anmelden"
+@model AnmeldenModel
+@{
+    ViewData["Title"] = "Anmelden";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/fotos.css" asp-append-version="true" />
+}
+
+<div class="login-box">
+    <a class="zurueck" href="~/fotos">&larr; Zu den Fotos</a>
+    <h1>Anmelden</h1>
+    <p class="text-muted">
+        Die Anmeldung ist nur zum Hinzufügen neuer Fotos nötig. Die Fotos selbst sind für alle sichtbar.
+    </p>
+
+    <form method="post" asp-route-returnUrl="@Model.ReturnUrl">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Input.Email" class="form-label">E-Mail</label>
+            <input asp-for="Input.Email" class="form-control" autocomplete="username" autofocus />
+            <span asp-validation-for="Input.Email" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Input.Password" class="form-label">Passwort</label>
+            <input asp-for="Input.Password" class="form-control" autocomplete="current-password" />
+            <span asp-validation-for="Input.Password" class="text-danger"></span>
+        </div>
+
+        <div class="form-check mb-3">
+            <input asp-for="Input.RememberMe" class="form-check-input" />
+            <label asp-for="Input.RememberMe" class="form-check-label">Angemeldet bleiben</label>
+        </div>
+
+        <button type="submit" class="btn btn-danger w-100">Anmelden</button>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

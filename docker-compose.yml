@@ -9,6 +9,11 @@ services:
       - "127.0.0.1:8080:8080"
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres-db;Database=ffwdb;Username=ffwuser;Password=${POSTGRES_PASSWORD}
+      - Fotos__Speicherpfad=/app/data/fotos
+      - Admin__Email=${ADMIN_EMAIL:-}
+      - Admin__Password=${ADMIN_PASSWORD:-}
+    volumes:
+      - fotos:/app/data/fotos
     depends_on:
       - db
     networks:
@@ -33,3 +38,4 @@ networks:
 
 volumes:
   pgdata:
+  fotos:
