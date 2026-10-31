@@ -1,0 +1,125 @@
+@page "/fotos"
+@model FotosModel
+@{
+    ViewData["Title"] = "Fotos";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/fotos.css" asp-append-version="true" />
+}
+
+<div class="fotos-kopf">
+    <div>
+        <a class="zurueck" href="~/">&larr; Startseite</a>
+        <h1>Fotos</h1>
+    </div>
+    <div class="fotos-konto">
+        @if (Model.Angemeldet)
+        {
+            <span class="text-muted small">@User.Identity!.Name</span>
+            <form method="post" asp-page-handler="Logout">
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Abmelden</button>
+            </form>
+        }
+        else
+        {
+            <a class="btn btn-danger" asp-page="/Anmelden" asp-route-returnUrl="/fotos">Anmelden</a>
+        }
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Erfolg))
+{
+    <div class="alert alert-success" role="status">@Model.Erfolg</div>
+}
+@if (!string.IsNullOrEmpty(Model.Fehler))
+{
+    <div class="alert alert-danger" role="alert">@Model.Fehler</div>
+}
+
+@if (Model.Angemeldet)
+{
+    <section class="upload-box">
+        <h2>Fotos hinzufügen</h2>
+        <form id="upload-form" method="post" enctype="multipart/form-data" asp-page-handler="Upload">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="kategorieId" class="form-label">Oberpunkt</label>
+                    <select id="kategorieId" name="kategorieId" class="form-select">
+                        <option value="">– Oberpunkt wählen –</option>
+                        @foreach (var kategorie in Model.Kategorien)
+                        {
+                            <option value="@kategorie.Id">@kategorie.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="neueKategorie" class="form-label">Oder neuen Oberpunkt anlegen</label>
+                    <input id="neueKategorie" name="neueKategorie" type="text" maxlength="100" class="form-control"
+                           placeholder="z. B. Übung 2026" autocomplete="off" />
+                </div>
+                <div class="col-12">
+                    <label for="dateien" class="form-label">Fotos</label>
+                    <input id="dateien" name="dateien" type="file" multiple required class="form-control"
+                           accept="image/jpeg,image/png,image/webp,image/gif" />
+                    <div class="form-text">Mehrere Fotos auf einmal sind möglich. Ein neuer Name hat Vorrang vor der Auswahl.</div>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-danger">Hochladen</button>
+                </div>
+            </div>
+        </form>
+    </section>
+}
+
+@if (Model.Kategorien.Count == 0)
+{
+    <p class="text-muted">Noch keine Fotos vorhanden.</p>
+}
+else
+{
+    if (Model.Kategorien.Count > 1)
+    {
+        <nav class="kategorie-nav" aria-label="Oberpunkte">
+            @foreach (var kategorie in Model.Kategorien)
+            {
+                <a href="#kategorie-@kategorie.Id">@kategorie.Name</a>
+            }
+        </nav>
+    }
+
+    foreach (var kategorie in Model.Kategorien)
+    {
+        <section class="kategorie" id="kategorie-@kategorie.Id">
+            <h2>@kategorie.Name <span class="anzahl">@kategorie.Fotos.Count</span></h2>
+
+            @if (kategorie.Fotos.Count == 0)
+            {
+                <p class="text-muted small">Noch keine Fotos in diesem Oberpunkt.</p>
+            }
+            else
+            {
+                <div class="raster">
+                    @foreach (var foto in kategorie.Fotos)
+                    {
+                        var dateiName = foto.ToString("N");
+                        <a class="kachel" href="/fotos/bild/@dateiName">
+                            <img src="/fotos/vorschau/@dateiName" alt="Foto aus @kategorie.Name" loading="lazy" decoding="async" />
+                        </a>
+                    }
+                </div>
+            }
+        </section>
+    }
+}
+
+<dialog id="lightbox" class="lightbox" aria-label="Fotoansicht">
+    <button type="button" class="lb-knopf lb-schliessen" aria-label="Schließen">&times;</button>
+    <button type="button" class="lb-knopf lb-zurueck" aria-label="Vorheriges Foto">&lsaquo;</button>
+    <img alt="" />
+    <button type="button" class="lb-knopf lb-weiter" aria-label="Nächstes Foto">&rsaquo;</button>
+</dialog>
+
+@section Scripts {
+    <script src="~/js/fotos.js" asp-append-version="true"></script>
+}

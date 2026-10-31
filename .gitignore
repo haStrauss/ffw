@@ -1,1 +1,4 @@
 .env
+
+# Lokal hochgeladene Fotos (Entwicklung)
+ffw/data/
