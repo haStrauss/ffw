@@ -110,6 +110,35 @@
     gap: .5rem;
 }
 
+.kachel-huelle {
+    position: relative;
+}
+
+/* Löschen-Knopf (nur für angemeldete Admins sichtbar) */
+.loeschen-form {
+    position: absolute;
+    top: .35rem;
+    right: .35rem;
+    margin: 0;
+}
+
+.loeschen-knopf {
+    width: 1.9rem;
+    height: 1.9rem;
+    font-size: 1.3rem;
+    line-height: 1;
+    color: #fff;
+    cursor: pointer;
+    background: rgba(198, 27, 33, .9);
+    border: 0;
+    border-radius: 50%;
+}
+
+.loeschen-knopf:hover,
+.loeschen-knopf:focus-visible {
+    background: #8f1217;
+}
+
 .kachel {
     display: block;
     aspect-ratio: 4 / 3;

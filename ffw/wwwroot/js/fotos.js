@@ -11,6 +11,15 @@
         });
     }
 
+    // Löschen: vor dem Absenden nachfragen.
+    document.querySelectorAll('.loeschen-form').forEach((loeschenForm) => {
+        loeschenForm.addEventListener('submit', (e) => {
+            if (!confirm(loeschenForm.dataset.bestaetigung || 'Wirklich löschen?')) {
+                e.preventDefault();
+            }
+        });
+    });
+
     // Lightbox: Großansicht mit Vor/Zurück innerhalb eines Oberpunkts.
     const dialog = document.getElementById('lightbox');
     if (!dialog) {

@@ -174,6 +174,38 @@ namespace ffw.Pages
             return RedirectToPage();
         }
 
+        public async Task<IActionResult> OnPostLoeschenAsync(Guid dateiId, CancellationToken ct)
+        {
+            if (!Angemeldet)
+            {
+                return RedirectToPage("Anmelden", new { returnUrl = "/fotos" });
+            }
+
+            var foto = await _db.Fotos.FirstOrDefaultAsync(f => f.DateiId == dateiId, ct);
+            if (foto is null)
+            {
+                Fehler = "Das Foto wurde nicht gefunden. Es wurde vielleicht schon gelöscht.";
+                return RedirectToPage();
+            }
+
+            try
+            {
+                _db.Fotos.Remove(foto);
+                await _db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException)
+            {
+                Fehler = "Das Foto konnte nicht gelöscht werden. Bitte erneut versuchen.";
+                return RedirectToPage();
+            }
+
+            // Erst nach erfolgreichem Datenbank-Eintrag die Dateien entfernen.
+            _speicher.Loeschen(dateiId);
+
+            Erfolg = "Das Foto wurde gelöscht.";
+            return RedirectToPage();
+        }
+
         public async Task<IActionResult> OnPostLogoutAsync()
         {
             await _signInManager.SignOutAsync();

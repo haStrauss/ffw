@@ -103,9 +103,19 @@ else
                     @foreach (var foto in kategorie.Fotos)
                     {
                         var dateiName = foto.ToString("N");
-                        <a class="kachel" href="/fotos/bild/@dateiName">
-                            <img src="/fotos/vorschau/@dateiName" alt="Foto aus @kategorie.Name" loading="lazy" decoding="async" />
-                        </a>
+                        <div class="kachel-huelle">
+                            <a class="kachel" href="/fotos/bild/@dateiName">
+                                <img src="/fotos/vorschau/@dateiName" alt="Foto aus @kategorie.Name" loading="lazy" decoding="async" />
+                            </a>
+                            @if (Model.Angemeldet)
+                            {
+                                <form method="post" asp-page-handler="Loeschen" class="loeschen-form"
+                                      data-bestaetigung="Dieses Foto wirklich endgültig löschen?">
+                                    <input type="hidden" name="dateiId" value="@foto" />
+                                    <button type="submit" class="loeschen-knopf" title="Foto löschen" aria-label="Foto löschen">&times;</button>
+                                </form>
+                            }
+                        </div>
                     }
                 </div>
             }
