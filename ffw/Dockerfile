@@ -2,8 +2,8 @@
 
 # Diese Stufe wird verwendet, wenn sie von VS im Schnellmodus ausgeführt wird (Standardeinstellung für Debugkonfiguration).
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-# Verzeichnis für hochgeladene Fotos: muss dem Container-Benutzer gehören, damit das benannte Volume beschreibbar ist.
-RUN mkdir -p /app/data/fotos /app/data/keys && chown -R $APP_UID /app/data
+# Verzeichnisse für hochgeladene Fotos und Dokumente: müssen dem Container-Benutzer gehören, damit das benannte Volume beschreibbar ist.
+RUN mkdir -p /app/data/fotos /app/data/dokumente /app/data/keys && chown -R $APP_UID /app/data
 USER $APP_UID
 WORKDIR /app
 EXPOSE 8080

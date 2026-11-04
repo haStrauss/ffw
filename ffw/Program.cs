@@ -14,6 +14,7 @@ builder.Services.AddRazorPages();
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddSingleton<FotoSpeicher>();
+builder.Services.AddSingleton<DokumentSpeicher>();
 
 // Anmeldung per E-Mail und Passwort. Es gibt bewusst keine Registrierung:
 // Benutzer werden nur über Admin:Email / Admin:Password angelegt (siehe DatenbankInitialisierer).
@@ -86,6 +87,30 @@ app.MapRazorPages()
 var fotoSpeicher = app.Services.GetRequiredService<FotoSpeicher>();
 app.MapGet("/fotos/bild/{id:guid}", (Guid id, HttpContext context) => FotoDatei(context, fotoSpeicher.PfadGross(id)));
 app.MapGet("/fotos/vorschau/{id:guid}", (Guid id, HttpContext context) => FotoDatei(context, fotoSpeicher.PfadVorschau(id)));
+
+// Dokumente sind ebenfalls öffentlich (nur das Hochladen und Löschen ist angemeldeten Benutzern vorbehalten).
+// Der Dateiname beim Download ist der ursprüngliche Name. PDFs öffnen sich im Browser, alles andere wird heruntergeladen.
+var dokumentSpeicher = app.Services.GetRequiredService<DokumentSpeicher>();
+app.MapGet("/dokumente/datei/{id:guid}", async (Guid id, AppDbContext db, HttpContext context, CancellationToken ct) =>
+{
+    var dokument = await db.Dokumente.AsNoTracking()
+        .Where(d => d.DateiId == id)
+        .Select(d => new { d.Name })
+        .FirstOrDefaultAsync(ct);
+    var typ = dokument is null ? null : DokumentSpeicher.TypFuer(dokument.Name);
+    var pfad = dokumentSpeicher.Pfad(id);
+    if (dokument is null || typ is null || !File.Exists(pfad))
+    {
+        return Results.NotFound();
+    }
+
+    var disposition = new Microsoft.Net.Http.Headers.ContentDispositionHeaderValue(typ.ImBrowserAnzeigen ? "inline" : "attachment");
+    disposition.SetHttpFileName(dokument.Name);
+    context.Response.Headers.ContentDisposition = disposition.ToString();
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    context.Response.Headers.CacheControl = "public, max-age=3600";
+    return Results.File(pfad, typ.ContentType, enableRangeProcessing: true);
+});
 
 app.Run();
 

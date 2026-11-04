@@ -14,6 +14,10 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
 
     public DbSet<Foto> Fotos => Set<Foto>();
 
+    public DbSet<DokumentKategorie> DokumentKategorien => Set<DokumentKategorie>();
+
+    public DbSet<Dokument> Dokumente => Set<Dokument>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -30,6 +34,22 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
             e.HasOne(f => f.Kategorie)
              .WithMany(k => k.Fotos)
              .HasForeignKey(f => f.KategorieId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<DokumentKategorie>(e =>
+        {
+            e.Property(k => k.Name).IsRequired().HasMaxLength(100);
+            e.HasIndex(k => k.Name).IsUnique();
+        });
+
+        builder.Entity<Dokument>(e =>
+        {
+            e.Property(d => d.Name).IsRequired().HasMaxLength(255);
+            e.HasIndex(d => d.DateiId).IsUnique();
+            e.HasOne(d => d.Kategorie)
+             .WithMany(k => k.Dokumente)
+             .HasForeignKey(d => d.KategorieId)
              .OnDelete(DeleteBehavior.Cascade);
         });
     }

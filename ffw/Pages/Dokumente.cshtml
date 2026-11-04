@@ -1,0 +1,133 @@
+@page "/dokumente"
+@model DokumenteModel
+@{
+    ViewData["Title"] = "Dokumente";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/fotos.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/dokumente.css" asp-append-version="true" />
+}
+
+<div class="fotos-kopf">
+    <div>
+        <a class="zurueck" href="~/">&larr; Startseite</a>
+        <h1>Dokumente</h1>
+    </div>
+    <div class="fotos-konto">
+        @if (Model.Angemeldet)
+        {
+            <span class="text-muted small">@User.Identity!.Name</span>
+            <form method="post" asp-page-handler="Logout">
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Abmelden</button>
+            </form>
+        }
+        else
+        {
+            <a class="btn btn-danger" asp-page="/Anmelden" asp-route-returnUrl="/dokumente">Anmelden</a>
+        }
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Erfolg))
+{
+    <div class="alert alert-success" role="status">@Model.Erfolg</div>
+}
+@if (!string.IsNullOrEmpty(Model.Fehler))
+{
+    <div class="alert alert-danger" role="alert">@Model.Fehler</div>
+}
+
+@if (Model.Angemeldet)
+{
+    <section class="upload-box">
+        <h2>Dokumente hinzufügen</h2>
+        <form id="upload-form" method="post" enctype="multipart/form-data" asp-page-handler="Upload">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="kategorieId" class="form-label">Oberpunkt</label>
+                    <select id="kategorieId" name="kategorieId" class="form-select">
+                        <option value="">– Oberpunkt wählen –</option>
+                        @foreach (var kategorie in Model.Kategorien)
+                        {
+                            <option value="@kategorie.Id">@kategorie.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="neueKategorie" class="form-label">Oder neuen Oberpunkt anlegen</label>
+                    <input id="neueKategorie" name="neueKategorie" type="text" maxlength="100" class="form-control"
+                           placeholder="z. B. Formulare" autocomplete="off" />
+                </div>
+                <div class="col-12">
+                    <label for="dateien" class="form-label">Dokumente</label>
+                    <input id="dateien" name="dateien" type="file" multiple required class="form-control"
+                           accept="@Model.ErlaubteEndungen" />
+                    <div class="form-text">
+                        Mehrere Dokumente auf einmal sind möglich (PDF, Word, Excel, PowerPoint, OpenDocument, TXT, CSV; je bis 50 MB).
+                        Ein neuer Name hat Vorrang vor der Auswahl.
+                    </div>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-danger">Hochladen</button>
+                </div>
+            </div>
+        </form>
+    </section>
+}
+
+@if (Model.Kategorien.Count == 0)
+{
+    <p class="text-muted">Noch keine Dokumente vorhanden.</p>
+}
+else
+{
+    if (Model.Kategorien.Count > 1)
+    {
+        <nav class="kategorie-nav" aria-label="Oberpunkte">
+            @foreach (var kategorie in Model.Kategorien)
+            {
+                <a href="#kategorie-@kategorie.Id">@kategorie.Name</a>
+            }
+        </nav>
+    }
+
+    foreach (var kategorie in Model.Kategorien)
+    {
+        <section class="kategorie" id="kategorie-@kategorie.Id">
+            <h2>@kategorie.Name <span class="anzahl">@kategorie.Dokumente.Count</span></h2>
+
+            @if (kategorie.Dokumente.Count == 0)
+            {
+                <p class="text-muted small">Noch keine Dokumente in diesem Oberpunkt.</p>
+            }
+            else
+            {
+                <ul class="dokument-liste">
+                    @foreach (var dokument in kategorie.Dokumente)
+                    {
+                        <li class="dokument-zeile">
+                            <span class="dokument-endung" aria-hidden="true">@DokumenteModel.Endung(dokument.Name)</span>
+                            <a class="dokument-link" href="/dokumente/datei/@dokument.DateiId.ToString("N")">
+                                <span class="dokument-name">@dokument.Name</span>
+                                <span class="dokument-meta">@DokumenteModel.Groesse(dokument.Groesse) &middot; @dokument.HochgeladenAm.ToString("dd.MM.yyyy")</span>
+                            </a>
+                            @if (Model.Angemeldet)
+                            {
+                                <form method="post" asp-page-handler="Loeschen" class="dokument-loeschen"
+                                      data-bestaetigung="Dieses Dokument wirklich endgültig löschen?">
+                                    <input type="hidden" name="dateiId" value="@dokument.DateiId" />
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Löschen</button>
+                                </form>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    }
+}
+
+@section Scripts {
+    <script src="~/js/dokumente.js" asp-append-version="true"></script>
+}
