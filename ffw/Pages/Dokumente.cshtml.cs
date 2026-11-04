@@ -81,8 +81,8 @@ namespace ffw.Pages
                 })
                 .ToListAsync();
 
-            // Besucher sehen nur Oberpunkte mit Dokumenten, angemeldete Benutzer alle (zum Auswählen beim Hochladen).
-            Kategorien = Angemeldet ? kategorien : kategorien.Where(k => k.Dokumente.Count > 0).ToList();
+            // Oberpunkte ohne Dokumente gibt es nicht (sie werden beim Löschen des letzten Dokuments entfernt).
+            Kategorien = kategorien;
         }
 
         public async Task<IActionResult> OnPostUploadAsync(
@@ -211,9 +211,23 @@ namespace ffw.Pages
                 return RedirectToPage();
             }
 
+            // Ein Oberpunkt ohne Dokumente wird automatisch mit entfernt.
+            string? entfernterOberpunkt = null;
             try
             {
                 _db.Dokumente.Remove(dokument);
+
+                var weitereDokumente = await _db.Dokumente.AnyAsync(d => d.KategorieId == dokument.KategorieId && d.Id != dokument.Id, ct);
+                if (!weitereDokumente)
+                {
+                    var kategorie = await _db.DokumentKategorien.FirstOrDefaultAsync(k => k.Id == dokument.KategorieId, ct);
+                    if (kategorie is not null)
+                    {
+                        _db.DokumentKategorien.Remove(kategorie);
+                        entfernterOberpunkt = kategorie.Name;
+                    }
+                }
+
                 await _db.SaveChangesAsync(ct);
             }
             catch (DbUpdateException)
@@ -225,7 +239,9 @@ namespace ffw.Pages
             // Erst nach erfolgreichem Datenbank-Eintrag die Datei entfernen.
             _speicher.Loeschen(dateiId);
 
-            Erfolg = "Das Dokument wurde gelöscht.";
+            Erfolg = entfernterOberpunkt is null
+                ? "Das Dokument wurde gelöscht."
+                : $"Das Dokument wurde gelöscht. Der leere Oberpunkt „{entfernterOberpunkt}“ wurde ebenfalls entfernt.";
             return RedirectToPage();
         }
 
