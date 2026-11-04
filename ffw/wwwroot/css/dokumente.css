@@ -1,0 +1,66 @@
+/* Ergänzt fotos.css (Kopfbereich, Upload-Box, Oberpunkte werden dort gemeinsam definiert) */
+
+.dokument-liste {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    border: 1px solid #dee2e6;
+    border-radius: .5rem;
+}
+
+.dokument-zeile {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+    padding: .65rem .85rem;
+}
+
+.dokument-zeile + .dokument-zeile {
+    border-top: 1px solid #e9ecef;
+}
+
+.dokument-zeile:hover {
+    background: #f6f7f9;
+}
+
+.dokument-endung {
+    flex: 0 0 3.4rem;
+    padding: .25rem 0;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-align: center;
+    color: #fff;
+    background: var(--ffw-rot);
+    border-radius: .3rem;
+}
+
+.dokument-link {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    color: var(--ffw-dunkel);
+    text-decoration: none;
+}
+
+.dokument-name {
+    overflow-wrap: anywhere;
+    font-weight: 600;
+}
+
+.dokument-link:hover .dokument-name,
+.dokument-link:focus-visible .dokument-name {
+    color: var(--ffw-rot);
+    text-decoration: underline;
+}
+
+.dokument-meta {
+    font-size: .8rem;
+    color: #6c757d;
+}
+
+.dokument-loeschen {
+    flex: 0 0 auto;
+    margin: 0;
+}
