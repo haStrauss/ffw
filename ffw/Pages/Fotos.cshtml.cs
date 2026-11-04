@@ -61,8 +61,8 @@ namespace ffw.Pages
                 })
                 .ToListAsync();
 
-            // Besucher sehen nur Oberpunkte mit Fotos, angemeldete Benutzer alle (zum Auswählen beim Hochladen).
-            Kategorien = Angemeldet ? kategorien : kategorien.Where(k => k.Fotos.Count > 0).ToList();
+            // Oberpunkte ohne Fotos gibt es nicht (sie werden beim Löschen des letzten Fotos entfernt).
+            Kategorien = kategorien;
         }
 
         public async Task<IActionResult> OnPostUploadAsync(
@@ -188,9 +188,23 @@ namespace ffw.Pages
                 return RedirectToPage();
             }
 
+            // Ein Oberpunkt ohne Fotos wird automatisch mit entfernt.
+            string? entfernterOberpunkt = null;
             try
             {
                 _db.Fotos.Remove(foto);
+
+                var weitereFotos = await _db.Fotos.AnyAsync(f => f.KategorieId == foto.KategorieId && f.Id != foto.Id, ct);
+                if (!weitereFotos)
+                {
+                    var kategorie = await _db.Kategorien.FirstOrDefaultAsync(k => k.Id == foto.KategorieId, ct);
+                    if (kategorie is not null)
+                    {
+                        _db.Kategorien.Remove(kategorie);
+                        entfernterOberpunkt = kategorie.Name;
+                    }
+                }
+
                 await _db.SaveChangesAsync(ct);
             }
             catch (DbUpdateException)
@@ -202,7 +216,9 @@ namespace ffw.Pages
             // Erst nach erfolgreichem Datenbank-Eintrag die Dateien entfernen.
             _speicher.Loeschen(dateiId);
 
-            Erfolg = "Das Foto wurde gelöscht.";
+            Erfolg = entfernterOberpunkt is null
+                ? "Das Foto wurde gelöscht."
+                : $"Das Foto wurde gelöscht. Der leere Oberpunkt „{entfernterOberpunkt}“ wurde ebenfalls entfernt.";
             return RedirectToPage();
         }
 

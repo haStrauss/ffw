@@ -34,6 +34,14 @@ public static class DatenbankInitialisierer
         // dazukommen, müssen in einer bestehenden Datenbank deshalb extra (und wiederholbar) angelegt werden.
         await TabellenFuerDokumenteAnlegenAsync(db);
 
+        // Oberpunkte ohne Fotos bzw. Dokumente sollen nicht bestehen bleiben (auch nicht aus der Zeit vor dieser Regel).
+        var leereFotoOberpunkte = await db.Kategorien.Where(k => !k.Fotos.Any()).ExecuteDeleteAsync();
+        var leereDokumentOberpunkte = await db.DokumentKategorien.Where(k => !k.Dokumente.Any()).ExecuteDeleteAsync();
+        if (leereFotoOberpunkte + leereDokumentOberpunkte > 0)
+        {
+            logger.LogInformation("{Anzahl} leere Oberpunkte wurden entfernt.", leereFotoOberpunkte + leereDokumentOberpunkte);
+        }
+
         var email = config["Admin:Email"]?.Trim();
         var passwort = config["Admin:Password"];
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrEmpty(passwort))
