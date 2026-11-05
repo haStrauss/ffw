@@ -1,0 +1,34 @@
+@page "/anmelden/wiederherstellung"
+@model WiederherstellungModel
+@{
+    ViewData["Title"] = "Wiederherstellungscode";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/fotos.css" asp-append-version="true" />
+}
+
+<div class="login-box">
+    <a class="zurueck" asp-page="/Anmelden">&larr; Zurück zur Anmeldung</a>
+    <h1>Wiederherstellungscode</h1>
+    <p class="text-muted">
+        Hast du keinen Zugriff auf deine Authenticator-App, kannst du dich mit einem deiner Wiederherstellungscodes anmelden.
+        Jeder Code funktioniert nur einmal.
+    </p>
+
+    <form method="post" asp-route-returnUrl="@Model.ReturnUrl">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="mb-3">
+            <label asp-for="Input.Code" class="form-label">Wiederherstellungscode</label>
+            <input asp-for="Input.Code" class="form-control" autocomplete="off" autofocus />
+            <span asp-validation-for="Input.Code" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-danger w-100">Anmelden</button>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

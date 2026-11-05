@@ -1,0 +1,188 @@
+@page "/benutzer"
+@model BenutzerModel
+@using ffw.Data
+@{
+    ViewData["Title"] = "Benutzer";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/fotos.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/benutzer.css" asp-append-version="true" />
+}
+
+<div class="fotos-kopf">
+    <div>
+        <a class="zurueck" href="~/">&larr; Startseite</a>
+        <h1>Benutzer</h1>
+    </div>
+    <partial name="_KontoLeiste" model='"/benutzer"' />
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Erfolg))
+{
+    <div class="alert alert-success" role="status">@Model.Erfolg</div>
+}
+@if (!string.IsNullOrEmpty(Model.Fehler))
+{
+    <div class="alert alert-danger" role="alert">@Model.Fehler</div>
+}
+
+<section class="upload-box">
+    <h2>Benutzer anlegen</h2>
+    <form method="post" asp-page-handler="Anlegen" autocomplete="off">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label for="email" class="form-label">E-Mail</label>
+                <input id="email" name="email" type="email" required maxlength="256" class="form-control"
+                       value="@Model.NeueEmail" autocomplete="off" />
+            </div>
+            <div class="col-md-4">
+                <label for="passwort" class="form-label">Startpasswort</label>
+                <div class="input-group">
+                    <input id="passwort" name="passwort" type="password" required class="form-control" autocomplete="new-password" />
+                    <button type="button" class="btn btn-outline-secondary zufallspasswort" data-ziel="#passwort">Erzeugen</button>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label for="gruppe" class="form-label">Gruppe</label>
+                <select id="gruppe" name="gruppe" class="form-select" required>
+                    <option value="">– Gruppe wählen –</option>
+                    @foreach (var gruppe in Model.Gruppen)
+                    {
+                        <option value="@gruppe" selected="@(gruppe == Model.NeueGruppe)">@gruppe</option>
+                    }
+                </select>
+            </div>
+            <div class="col-12">
+                <div class="form-text mb-2">
+                    Mindestens 10 Zeichen mit Groß- und Kleinbuchstaben, Ziffer und Sonderzeichen. „Erzeugen“ macht ein sicheres Passwort
+                    und zeigt es an. Es wird nicht per E-Mail verschickt, bitte persönlich weitergeben.
+                </div>
+                <button type="submit" class="btn btn-danger">Anlegen</button>
+            </div>
+        </div>
+    </form>
+    <ul class="gruppen-hinweis">
+        @foreach (var gruppe in Model.Gruppen)
+        {
+            <li><strong>@gruppe</strong>: @Rollen.Beschreibung(gruppe)</li>
+        }
+    </ul>
+</section>
+
+<div class="table-responsive">
+    <table class="table align-middle benutzer-tabelle">
+        <thead>
+            <tr>
+                <th>E-Mail</th>
+                <th>Gruppe</th>
+                <th>Status</th>
+                <th>Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var b in Model.Benutzer)
+            {
+                <tr>
+                    <td>
+                        @b.Email
+                        @if (b.IstIch)
+                        {
+                            <span class="badge text-bg-secondary">du</span>
+                        }
+                    </td>
+                    <td>
+                        @if (b.IstIch)
+                        {
+                            <span>@(string.IsNullOrEmpty(b.Gruppe) ? "keine" : b.Gruppe)</span>
+                        }
+                        else
+                        {
+                            <form method="post" asp-page-handler="Gruppe" class="d-flex gap-1">
+                                <input type="hidden" name="id" value="@b.Id" />
+                                <select name="gruppe" class="form-select form-select-sm" aria-label="Gruppe von @b.Email">
+                                    @if (string.IsNullOrEmpty(b.Gruppe))
+                                    {
+                                        <option value="" selected>keine</option>
+                                    }
+                                    @foreach (var gruppe in Model.Gruppen)
+                                    {
+                                        <option value="@gruppe" selected="@(gruppe == b.Gruppe)">@gruppe</option>
+                                    }
+                                </select>
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">Ändern</button>
+                            </form>
+                        }
+                    </td>
+                    <td>
+                        @if (b.DauerhaftGesperrt)
+                        {
+                            <span class="badge text-bg-danger">gesperrt</span>
+                        }
+                        else if (b.Gesperrt)
+                        {
+                            <span class="badge text-bg-warning" title="Automatische Sperre nach zu vielen falschen Passwörtern">vorübergehend gesperrt</span>
+                        }
+                        else
+                        {
+                            <span class="badge text-bg-success">aktiv</span>
+                        }
+                        @if (b.ZweiFaktor)
+                        {
+                            <span class="badge text-bg-info">2FA</span>
+                        }
+                    </td>
+                    <td>
+                        @if (b.IstIch)
+                        {
+                            <a asp-page="/Konto" class="btn btn-outline-secondary btn-sm">Eigenes Konto</a>
+                        }
+                        else
+                        {
+                            <div class="aktionen">
+                                <form method="post" asp-page-handler="Sperren">
+                                    <input type="hidden" name="id" value="@b.Id" />
+                                    <input type="hidden" name="sperren" value="@((!b.Gesperrt).ToString().ToLowerInvariant())" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm">@(b.Gesperrt ? "Entsperren" : "Sperren")</button>
+                                </form>
+
+                                <details class="passwort-setzen">
+                                    <summary class="btn btn-outline-secondary btn-sm">Passwort setzen</summary>
+                                    <form method="post" asp-page-handler="Passwort" class="bestaetigen"
+                                          data-bestaetigung="Neues Passwort setzen? Bestehende Anmeldungen von @b.Email werden beendet.">
+                                        <input type="hidden" name="id" value="@b.Id" />
+                                        <div class="input-group input-group-sm">
+                                            <input id="pw-@b.Id" name="neuesPasswort" type="password" required class="form-control"
+                                                   autocomplete="new-password" aria-label="Neues Passwort für @b.Email" />
+                                            <button type="button" class="btn btn-outline-secondary zufallspasswort" data-ziel="#pw-@b.Id">Erzeugen</button>
+                                            <button type="submit" class="btn btn-secondary">Setzen</button>
+                                        </div>
+                                    </form>
+                                </details>
+
+                                @if (b.ZweiFaktor)
+                                {
+                                    <form method="post" asp-page-handler="ZweiFaktor" class="bestaetigen"
+                                          data-bestaetigung="Zwei-Faktor-Anmeldung von @b.Email wirklich zurücksetzen?">
+                                        <input type="hidden" name="id" value="@b.Id" />
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm">2FA zurücksetzen</button>
+                                    </form>
+                                }
+
+                                <form method="post" asp-page-handler="Loeschen" class="bestaetigen"
+                                      data-bestaetigung="Benutzer @b.Email wirklich endgültig löschen?">
+                                    <input type="hidden" name="id" value="@b.Id" />
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Löschen</button>
+                                </form>
+                            </div>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script src="~/js/benutzer.js" asp-append-version="true"></script>
+}

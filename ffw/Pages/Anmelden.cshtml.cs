@@ -9,11 +9,14 @@ namespace ffw.Pages
     {
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly ILogger<AnmeldenModel> _logger;
 
-        public AnmeldenModel(SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager)
+        public AnmeldenModel(SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager,
+            ILogger<AnmeldenModel> logger)
         {
             _signInManager = signInManager;
             _userManager = userManager;
+            _logger = logger;
         }
 
         [BindProperty]
@@ -61,11 +64,20 @@ namespace ffw.Pages
 
             if (ergebnis.Succeeded)
             {
+                _logger.LogInformation("Anmeldung erfolgreich: {Email}", benutzer!.Email);
                 return LocalRedirect(ReturnUrl);
             }
 
+            // Hat der Benutzer die Zwei-Faktor-Anmeldung eingerichtet, fehlt nach dem Passwort noch der Code.
+            if (ergebnis.RequiresTwoFactor)
+            {
+                return RedirectToPage("ZweiFaktor", new { returnUrl = ReturnUrl, rememberMe = Input.RememberMe });
+            }
+
+            _logger.LogWarning("Anmeldung fehlgeschlagen für {Email} (gesperrt: {Gesperrt})", Input.Email, ergebnis.IsLockedOut);
+
             ModelState.AddModelError(string.Empty, ergebnis.IsLockedOut
-                ? "Zu viele fehlgeschlagene Versuche. Bitte in 15 Minuten erneut versuchen."
+                ? "Das Konto ist gesperrt, zum Beispiel nach zu vielen fehlgeschlagenen Versuchen. Bitte später erneut versuchen oder an einen Administrator wenden."
                 : "E-Mail-Adresse oder Passwort ist falsch.");
             return Page();
         }

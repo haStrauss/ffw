@@ -1,0 +1,19 @@
+@page "/kein-zugriff"
+@model KeinZugriffModel
+@{
+    ViewData["Title"] = "Kein Zugriff";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/fotos.css" asp-append-version="true" />
+}
+
+<div class="login-box">
+    <a class="zurueck" href="~/">&larr; Startseite</a>
+    <h1>Kein Zugriff</h1>
+    <p class="text-muted">
+        Für diese Seite fehlt deinem Benutzer die Berechtigung. Wenn du sie brauchst, wende dich an einen Administrator.
+    </p>
+    <a class="btn btn-outline-secondary" href="~/fotos">Zu den Fotos</a>
+    <a class="btn btn-outline-secondary" href="~/dokumente">Zu den Dokumenten</a>
+</div>
