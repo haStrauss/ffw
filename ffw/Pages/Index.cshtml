@@ -132,6 +132,63 @@
                         border-color: #ffffff;
                     }
 
+            /* Menü: nur für angemeldete Benutzer */
+            body.angemeldet {
+                height: auto;
+                min-height: 100vh;
+                overflow: visible;
+            }
+
+                /* Mit Menü ist der Inhalt höher; statt nach oben zu verschieben wird er mittig platziert und die Seite scrollt bei Bedarf. */
+                body.angemeldet .content {
+                    margin: auto;
+                    transform: none;
+                }
+
+            .menu {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.75rem;
+                max-width: 520px;
+                margin: 0 auto 1.5rem auto;
+            }
+
+                .menu a,
+                .menu button {
+                    display: inline-block;
+                    padding: 0.7rem 1.4rem;
+                    font: inherit;
+                    font-weight: 600;
+                    color: #ffffff;
+                    text-decoration: none;
+                    cursor: pointer;
+                    background: rgba(255, 255, 255, 0.14);
+                    border: 1px solid rgba(255, 255, 255, 0.45);
+                    border-radius: 999px;
+                    backdrop-filter: blur(4px);
+                    transition: background 0.2s ease, border-color 0.2s ease;
+                }
+
+                    .menu a:hover,
+                    .menu a:focus-visible,
+                    .menu button:hover,
+                    .menu button:focus-visible {
+                        background: rgba(198, 27, 33, 0.95);
+                        border-color: transparent;
+                    }
+
+                .menu form {
+                    margin: 0;
+                }
+
+            .angemeldet-als {
+                margin-bottom: 0.75rem;
+                font-size: 0.9rem;
+                color: rgba(255, 255, 255, 0.75);
+                text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+            }
+
             @@media (max-width: 480px) {
                 .content {
                     padding: 1.5rem 1rem;
@@ -139,7 +196,7 @@
             }
     </style>
 </head>
-<body>
+<body class="@(Model.Angemeldet ? "angemeldet" : null)">
 
     <div class="content">
         <span class="badge">Website im Aufbau</span>
@@ -154,6 +211,31 @@
                 <div class="progress-fill"></div>
             </div>
         </div>
+
+        @* Das Menü gibt es nur nach der Anmeldung. Besucher sehen auf der Startseite keine Optionen. *@
+        @if (Model.Angemeldet)
+        {
+            <p class="angemeldet-als">Angemeldet als @User.Identity!.Name</p>
+            <nav class="menu" aria-label="Seiten">
+                @if (Model.KannFotosSehen)
+                {
+                    <a href="~/fotos">Fotos</a>
+                }
+                @if (Model.KannDokumenteSehen)
+                {
+                    <a href="~/dokumente">Dokumente</a>
+                }
+                <a href="~/kostenuhr">Kostenuhr</a>
+                @if (Model.KannBenutzerVerwalten)
+                {
+                    <a href="~/benutzer">Benutzer</a>
+                }
+                <a href="~/konto">Konto</a>
+                <form method="post" asp-page-handler="Logout">
+                    <button type="submit">Abmelden</button>
+                </form>
+            </nav>
+        }
 
         <p class="footer-note">
             Ideen zur Gestaltung dieser Website bitte
