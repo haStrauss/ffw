@@ -102,13 +102,16 @@ app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
 
-// Fotos sind öffentlich. Die Dateinamen sind zufällige GUIDs und ändern sich nie,
-// daher dürfen Browser und Proxys sie dauerhaft zwischenspeichern.
+// Fotos sehen nur angemeldete Benutzer mit dem Recht Fotos.Lesen. Auch die Bilddateien selbst sind geschützt,
+// sonst käme man mit einem weitergegebenen Link ohne Anmeldung an sie heran. Die Dateinamen sind zufällige GUIDs und
+// ändern sich nie, daher darf der Browser sie dauerhaft zwischenspeichern, Proxys aber nicht (private).
 var fotoSpeicher = app.Services.GetRequiredService<FotoSpeicher>();
-app.MapGet("/fotos/bild/{id:guid}", (Guid id, HttpContext context) => FotoDatei(context, fotoSpeicher.PfadGross(id)));
-app.MapGet("/fotos/vorschau/{id:guid}", (Guid id, HttpContext context) => FotoDatei(context, fotoSpeicher.PfadVorschau(id)));
+app.MapGet("/fotos/bild/{id:guid}", (Guid id, HttpContext context) => FotoDatei(context, fotoSpeicher.PfadGross(id)))
+   .RequireAuthorization(Rechte.FotosLesen);
+app.MapGet("/fotos/vorschau/{id:guid}", (Guid id, HttpContext context) => FotoDatei(context, fotoSpeicher.PfadVorschau(id)))
+   .RequireAuthorization(Rechte.FotosLesen);
 
-// Dokumente sind ebenfalls öffentlich (nur das Hochladen und Löschen ist angemeldeten Benutzern vorbehalten).
+// Dokumente sehen nur angemeldete Benutzer mit dem Recht Dokumente.Lesen (auch beim direkten Link auf die Datei).
 // Der Dateiname beim Download ist der ursprüngliche Name. PDFs öffnen sich im Browser, alles andere wird heruntergeladen.
 var dokumentSpeicher = app.Services.GetRequiredService<DokumentSpeicher>();
 app.MapGet("/dokumente/datei/{id:guid}", async (Guid id, AppDbContext db, HttpContext context, CancellationToken ct) =>
@@ -128,9 +131,10 @@ app.MapGet("/dokumente/datei/{id:guid}", async (Guid id, AppDbContext db, HttpCo
     disposition.SetHttpFileName(dokument.Name);
     context.Response.Headers.ContentDisposition = disposition.ToString();
     context.Response.Headers.XContentTypeOptions = "nosniff";
-    context.Response.Headers.CacheControl = "public, max-age=3600";
+    context.Response.Headers.CacheControl = "private, max-age=3600";
     return Results.File(pfad, typ.ContentType, enableRangeProcessing: true);
-});
+})
+.RequireAuthorization(Rechte.DokumenteLesen);
 
 app.Run();
 
@@ -141,7 +145,7 @@ static IResult FotoDatei(HttpContext context, string pfad)
         return Results.NotFound();
     }
 
-    context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+    context.Response.Headers.CacheControl = "private, max-age=31536000, immutable";
     context.Response.Headers.XContentTypeOptions = "nosniff";
     return Results.File(pfad, "image/jpeg");
 }

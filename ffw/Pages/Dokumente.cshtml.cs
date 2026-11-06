@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ffw.Pages
 {
+    [Authorize(Policy = Rechte.DokumenteLesen)]
     [RequestSizeLimit(DokumenteModel.MaxGesamtBytes)]
     [RequestFormLimits(MultipartBodyLengthLimit = DokumenteModel.MaxGesamtBytes)]
     public class DokumenteModel : PageModel
