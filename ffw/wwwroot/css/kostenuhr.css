@@ -37,6 +37,21 @@ body {
     padding: 16px 24px 24px;
 }
 
+/* Weg zurück zur Startseite (nur für angemeldete Benutzer) */
+.zur-startseite {
+    align-self: flex-start;
+    margin-bottom: 8px;
+    padding: 4px 0;
+    font-size: 0.9rem;
+    color: var(--muted);
+    text-decoration: none;
+}
+
+    .zur-startseite:hover,
+    .zur-startseite:focus-visible {
+        color: var(--fg);
+    }
+
 /* Tabs */
 .tabs {
     display: flex;
