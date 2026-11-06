@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ffw.Pages
 {
+    [Authorize(Policy = Rechte.FotosLesen)]
     [RequestSizeLimit(FotosModel.MaxGesamtBytes)]
     [RequestFormLimits(MultipartBodyLengthLimit = FotosModel.MaxGesamtBytes)]
     public class FotosModel : PageModel
