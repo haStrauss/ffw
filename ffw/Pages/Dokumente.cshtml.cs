@@ -1,6 +1,7 @@
 using System.Globalization;
 using ffw.Data;
 using ffw.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -18,17 +19,23 @@ namespace ffw.Pages
         private readonly AppDbContext _db;
         private readonly DokumentSpeicher _speicher;
         private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly IAuthorizationService _autorisierung;
 
-        public DokumenteModel(AppDbContext db, DokumentSpeicher speicher, SignInManager<IdentityUser> signInManager)
+        public DokumenteModel(AppDbContext db, DokumentSpeicher speicher, SignInManager<IdentityUser> signInManager,
+            IAuthorizationService autorisierung)
         {
             _db = db;
             _speicher = speicher;
             _signInManager = signInManager;
+            _autorisierung = autorisierung;
         }
 
         public List<KategorieAnsicht> Kategorien { get; private set; } = new();
 
         public bool Angemeldet => User.Identity?.IsAuthenticated == true;
+
+        /// <summary>Darf hochladen und löschen (Recht Dokumente.Bearbeiten, nicht nur "angemeldet").</summary>
+        public bool KannBearbeiten { get; private set; }
 
         public string ErlaubteEndungen => string.Join(",", DokumentSpeicher.ErlaubteEndungen);
 
@@ -60,6 +67,8 @@ namespace ffw.Pages
 
         public async Task OnGetAsync()
         {
+            KannBearbeiten = await DarfBearbeitenAsync();
+
             var kategorien = await _db.DokumentKategorien
                 .AsNoTracking()
                 .OrderBy(k => k.Name)
@@ -88,9 +97,10 @@ namespace ffw.Pages
         public async Task<IActionResult> OnPostUploadAsync(
             int? kategorieId, string? neueKategorie, List<IFormFile> dateien, CancellationToken ct)
         {
-            if (!Angemeldet)
+            var abgewiesen = await BearbeitenPruefenAsync();
+            if (abgewiesen is not null)
             {
-                return RedirectToPage("Anmelden", new { returnUrl = "/dokumente" });
+                return abgewiesen;
             }
 
             // Oberpunkt bestimmen: ein eingegebener neuer Name hat Vorrang vor der Auswahl.
@@ -199,9 +209,10 @@ namespace ffw.Pages
 
         public async Task<IActionResult> OnPostLoeschenAsync(Guid dateiId, CancellationToken ct)
         {
-            if (!Angemeldet)
+            var abgewiesen = await BearbeitenPruefenAsync();
+            if (abgewiesen is not null)
             {
-                return RedirectToPage("Anmelden", new { returnUrl = "/dokumente" });
+                return abgewiesen;
             }
 
             var dokument = await _db.Dokumente.FirstOrDefaultAsync(d => d.DateiId == dateiId, ct);
@@ -243,6 +254,26 @@ namespace ffw.Pages
                 ? "Das Dokument wurde gelöscht."
                 : $"Das Dokument wurde gelöscht. Der leere Oberpunkt „{entfernterOberpunkt}“ wurde ebenfalls entfernt.";
             return RedirectToPage();
+        }
+
+        private async Task<bool> DarfBearbeitenAsync()
+            => (await _autorisierung.AuthorizeAsync(User, Rechte.DokumenteBearbeiten)).Succeeded;
+
+        /// <summary>Null, wenn der Benutzer bearbeiten darf; sonst die passende Antwort (Anmelden bzw. Hinweis).</summary>
+        private async Task<IActionResult?> BearbeitenPruefenAsync()
+        {
+            if (!Angemeldet)
+            {
+                return RedirectToPage("Anmelden", new { returnUrl = "/dokumente" });
+            }
+
+            if (!await DarfBearbeitenAsync())
+            {
+                Fehler = "Dafür fehlt die Berechtigung.";
+                return RedirectToPage();
+            }
+
+            return null;
         }
 
         public async Task<IActionResult> OnPostLogoutAsync()

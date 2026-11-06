@@ -1,0 +1,24 @@
+@using Microsoft.AspNetCore.Authorization
+@using ffw.Data
+@inject IAuthorizationService Autorisierung
+@model string
+@* Konto-Bereich rechts oben. Das Modell ist die Seite, zu der nach dem Anmelden zurückgekehrt wird.
+   Der Logout-Handler (asp-page-handler) gehört der Seite, in der das Partial eingebunden ist. *@
+<div class="fotos-konto">
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <span class="text-muted small">@User.Identity.Name</span>
+        @if ((await Autorisierung.AuthorizeAsync(User, Rechte.BenutzerVerwalten)).Succeeded)
+        {
+            <a class="btn btn-outline-secondary btn-sm" asp-page="/Benutzer">Benutzer</a>
+        }
+        <a class="btn btn-outline-secondary btn-sm" asp-page="/Konto">Konto</a>
+        <form method="post" asp-page-handler="Logout">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Abmelden</button>
+        </form>
+    }
+    else
+    {
+        <a class="btn btn-danger" asp-page="/Anmelden" asp-route-returnUrl="@Model">Anmelden</a>
+    }
+</div>

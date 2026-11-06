@@ -14,19 +14,7 @@
         <a class="zurueck" href="~/">&larr; Startseite</a>
         <h1>Dokumente</h1>
     </div>
-    <div class="fotos-konto">
-        @if (Model.Angemeldet)
-        {
-            <span class="text-muted small">@User.Identity!.Name</span>
-            <form method="post" asp-page-handler="Logout">
-                <button type="submit" class="btn btn-outline-secondary btn-sm">Abmelden</button>
-            </form>
-        }
-        else
-        {
-            <a class="btn btn-danger" asp-page="/Anmelden" asp-route-returnUrl="/dokumente">Anmelden</a>
-        }
-    </div>
+    <partial name="_KontoLeiste" model='"/dokumente"' />
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Erfolg))
@@ -38,7 +26,7 @@
     <div class="alert alert-danger" role="alert">@Model.Fehler</div>
 }
 
-@if (Model.Angemeldet)
+@if (Model.KannBearbeiten)
 {
     <section class="upload-box">
         <h2>Dokumente hinzufügen</h2>
@@ -112,7 +100,7 @@ else
                                 <span class="dokument-name">@dokument.Name</span>
                                 <span class="dokument-meta">@DokumenteModel.Groesse(dokument.Groesse) &middot; @dokument.HochgeladenAm.ToString("dd.MM.yyyy")</span>
                             </a>
-                            @if (Model.Angemeldet)
+                            @if (Model.KannBearbeiten)
                             {
                                 <form method="post" asp-page-handler="Loeschen" class="dokument-loeschen"
                                       data-bestaetigung="Dieses Dokument wirklich endgültig löschen?">

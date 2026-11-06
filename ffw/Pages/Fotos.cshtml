@@ -13,19 +13,7 @@
         <a class="zurueck" href="~/">&larr; Startseite</a>
         <h1>Fotos</h1>
     </div>
-    <div class="fotos-konto">
-        @if (Model.Angemeldet)
-        {
-            <span class="text-muted small">@User.Identity!.Name</span>
-            <form method="post" asp-page-handler="Logout">
-                <button type="submit" class="btn btn-outline-secondary btn-sm">Abmelden</button>
-            </form>
-        }
-        else
-        {
-            <a class="btn btn-danger" asp-page="/Anmelden" asp-route-returnUrl="/fotos">Anmelden</a>
-        }
-    </div>
+    <partial name="_KontoLeiste" model='"/fotos"' />
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Erfolg))
@@ -37,7 +25,7 @@
     <div class="alert alert-danger" role="alert">@Model.Fehler</div>
 }
 
-@if (Model.Angemeldet)
+@if (Model.KannBearbeiten)
 {
     <section class="upload-box">
         <h2>Fotos hinzufügen</h2>
@@ -107,7 +95,7 @@ else
                             <a class="kachel" href="/fotos/bild/@dateiName">
                                 <img src="/fotos/vorschau/@dateiName" alt="Foto aus @kategorie.Name" loading="lazy" decoding="async" />
                             </a>
-                            @if (Model.Angemeldet)
+                            @if (Model.KannBearbeiten)
                             {
                                 <form method="post" asp-page-handler="Loeschen" class="loeschen-form"
                                       data-bestaetigung="Dieses Foto wirklich endgültig löschen?">

@@ -1,0 +1,44 @@
+/* Ergänzt fotos.css (Kopfbereich und Upload-Box sind dort gemeinsam definiert) */
+
+.gruppen-hinweis {
+    padding-left: 1.1rem;
+    margin: 1rem 0 0;
+    font-size: .85rem;
+    color: #6c757d;
+}
+
+.benutzer-tabelle th {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #6c757d;
+}
+
+.aktionen {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: .4rem;
+}
+
+.aktionen form {
+    margin: 0;
+}
+
+.passwort-setzen summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.passwort-setzen summary::-webkit-details-marker {
+    display: none;
+}
+
+.passwort-setzen[open] {
+    flex-basis: 100%;
+}
+
+.passwort-setzen form {
+    max-width: 24rem;
+    margin-top: .4rem;
+}

@@ -27,8 +27,27 @@ builder.Services
         options.Lockout.MaxFailedAccessAttempts = 5;
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     })
+    .AddRoles<IdentityRole>()                       // Rechtegruppen (Admin, Redakteur, Mitglied)
     .AddEntityFrameworkStores<AppDbContext>()
-    .AddSignInManager();
+    .AddSignInManager()
+    .AddDefaultTokenProviders()                     // u. a. Authenticator-App (TOTP) für die Zwei-Faktor-Anmeldung
+    .AddErrorDescriber<DeutscheIdentityFehler>();
+
+// Jedes Recht ist eine Policy. Die Rechte hängen als Claims an den Rollen (siehe DatenbankInitialisierer).
+builder.Services.AddAuthorization(options =>
+{
+    foreach (var recht in Rechte.Alle)
+    {
+        options.AddPolicy(recht, policy => policy
+            .RequireAuthenticatedUser()
+            .RequireClaim(Rechte.ClaimTyp, recht));
+    }
+});
+
+// Das Login-Cookie wird jede Minute (statt nur alle 30 Minuten) gegen die Datenbank geprüft und dabei neu aufgebaut.
+// So wirken geänderte Gruppen und Rechte, Sperren, gelöschte Benutzer und neue Passwörter nach spätestens einer Minute.
+// Bei jeder Anfrage zu prüfen wäre unnötig teuer, denn die Prüfung läuft auch für jede CSS-, JS- und Bilddatei.
+builder.Services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.FromMinutes(1));
 
 // Die Schlüssel für Login-Cookies und Antiforgery-Token müssen einen Neustart/Deploy des Containers überleben,
 // sonst wären nach jedem Deploy alle angemeldeten Benutzer abgemeldet. Der Pfad liegt in einem Docker-Volume.
@@ -48,7 +67,8 @@ var cookieSecurePolicy = builder.Environment.IsDevelopment()
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/anmelden";
-    options.AccessDeniedPath = "/anmelden";
+    // Eine eigene Seite, sonst würde ein angemeldeter Benutzer ohne Recht zwischen Anmeldung und Zielseite hin- und herlaufen.
+    options.AccessDeniedPath = "/kein-zugriff";
     options.Cookie.Name = "ffw.auth";
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;

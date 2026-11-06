@@ -1,5 +1,6 @@
 using ffw.Data;
 using ffw.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -17,17 +18,23 @@ namespace ffw.Pages
         private readonly AppDbContext _db;
         private readonly FotoSpeicher _speicher;
         private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly IAuthorizationService _autorisierung;
 
-        public FotosModel(AppDbContext db, FotoSpeicher speicher, SignInManager<IdentityUser> signInManager)
+        public FotosModel(AppDbContext db, FotoSpeicher speicher, SignInManager<IdentityUser> signInManager,
+            IAuthorizationService autorisierung)
         {
             _db = db;
             _speicher = speicher;
             _signInManager = signInManager;
+            _autorisierung = autorisierung;
         }
 
         public List<KategorieAnsicht> Kategorien { get; private set; } = new();
 
         public bool Angemeldet => User.Identity?.IsAuthenticated == true;
+
+        /// <summary>Darf hochladen und löschen (Recht Fotos.Bearbeiten, nicht nur "angemeldet").</summary>
+        public bool KannBearbeiten { get; private set; }
 
         [TempData]
         public string? Erfolg { get; set; }
@@ -46,6 +53,8 @@ namespace ffw.Pages
 
         public async Task OnGetAsync()
         {
+            KannBearbeiten = await DarfBearbeitenAsync();
+
             var kategorien = await _db.Kategorien
                 .AsNoTracking()
                 .OrderBy(k => k.Name)
@@ -68,9 +77,10 @@ namespace ffw.Pages
         public async Task<IActionResult> OnPostUploadAsync(
             int? kategorieId, string? neueKategorie, List<IFormFile> dateien, CancellationToken ct)
         {
-            if (!Angemeldet)
+            var abgewiesen = await BearbeitenPruefenAsync();
+            if (abgewiesen is not null)
             {
-                return RedirectToPage("Anmelden", new { returnUrl = "/fotos" });
+                return abgewiesen;
             }
 
             // Oberpunkt bestimmen: ein eingegebener neuer Name hat Vorrang vor der Auswahl.
@@ -176,9 +186,10 @@ namespace ffw.Pages
 
         public async Task<IActionResult> OnPostLoeschenAsync(Guid dateiId, CancellationToken ct)
         {
-            if (!Angemeldet)
+            var abgewiesen = await BearbeitenPruefenAsync();
+            if (abgewiesen is not null)
             {
-                return RedirectToPage("Anmelden", new { returnUrl = "/fotos" });
+                return abgewiesen;
             }
 
             var foto = await _db.Fotos.FirstOrDefaultAsync(f => f.DateiId == dateiId, ct);
@@ -220,6 +231,26 @@ namespace ffw.Pages
                 ? "Das Foto wurde gelöscht."
                 : $"Das Foto wurde gelöscht. Der leere Oberpunkt „{entfernterOberpunkt}“ wurde ebenfalls entfernt.";
             return RedirectToPage();
+        }
+
+        private async Task<bool> DarfBearbeitenAsync()
+            => (await _autorisierung.AuthorizeAsync(User, Rechte.FotosBearbeiten)).Succeeded;
+
+        /// <summary>Null, wenn der Benutzer bearbeiten darf; sonst die passende Antwort (Anmelden bzw. Hinweis).</summary>
+        private async Task<IActionResult?> BearbeitenPruefenAsync()
+        {
+            if (!Angemeldet)
+            {
+                return RedirectToPage("Anmelden", new { returnUrl = "/fotos" });
+            }
+
+            if (!await DarfBearbeitenAsync())
+            {
+                Fehler = "Dafür fehlt die Berechtigung.";
+                return RedirectToPage();
+            }
+
+            return null;
         }
 
         public async Task<IActionResult> OnPostLogoutAsync()

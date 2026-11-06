@@ -1,0 +1,79 @@
+@page "/konto"
+@model KontoModel
+@{
+    ViewData["Title"] = "Konto";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/fotos.css" asp-append-version="true" />
+}
+
+<div class="fotos-kopf">
+    <div>
+        <a class="zurueck" href="~/">&larr; Startseite</a>
+        <h1>Mein Konto</h1>
+    </div>
+    <partial name="_KontoLeiste" model='"/konto"' />
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Erfolg))
+{
+    <div class="alert alert-success" role="status">@Model.Erfolg</div>
+}
+
+<section class="upload-box">
+    <h2>Angemeldet als</h2>
+    <dl class="row mb-0">
+        <dt class="col-sm-3">E-Mail</dt>
+        <dd class="col-sm-9">@Model.Email</dd>
+        <dt class="col-sm-3">Gruppe</dt>
+        <dd class="col-sm-9 mb-0">@Model.Gruppe</dd>
+    </dl>
+</section>
+
+<section class="upload-box">
+    <h2>Passwort ändern</h2>
+    <form method="post" asp-page-handler="Passwort">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label asp-for="Input.AktuellesPasswort" class="form-label">Aktuelles Passwort</label>
+                <input asp-for="Input.AktuellesPasswort" class="form-control" autocomplete="current-password" />
+                <span asp-validation-for="Input.AktuellesPasswort" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Input.NeuesPasswort" class="form-label">Neues Passwort</label>
+                <input asp-for="Input.NeuesPasswort" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="Input.NeuesPasswort" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Input.Wiederholung" class="form-label">Neues Passwort wiederholen</label>
+                <input asp-for="Input.Wiederholung" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="Input.Wiederholung" class="text-danger"></span>
+            </div>
+            <div class="col-12">
+                <div class="form-text mb-2">Mindestens 10 Zeichen mit Groß- und Kleinbuchstaben, Ziffer und Sonderzeichen.</div>
+                <button type="submit" class="btn btn-danger">Passwort ändern</button>
+            </div>
+        </div>
+    </form>
+</section>
+
+<section class="upload-box">
+    <h2>Zwei-Faktor-Anmeldung</h2>
+    @if (Model.ZweiFaktorAktiv)
+    {
+        <p class="mb-0">Ist <strong>eingerichtet</strong>. Bei der Anmeldung wird nach dem Passwort ein Code aus der Authenticator-App abgefragt.</p>
+    }
+    else
+    {
+        <p class="mb-0 text-muted">
+            Ist noch nicht eingerichtet. Die Anmeldung mit einem zweiten Faktor (Authenticator-App) ist technisch vorbereitet;
+            das Einrichten hier auf der Seite folgt in einer späteren Version.
+        </p>
+    }
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
