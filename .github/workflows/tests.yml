@@ -1,0 +1,110 @@
+name: Tests
+
+# Läuft
+#  - bei jedem Pull Request,
+#  - jede Nacht (02:00 UTC = 03:00 bzw. 04:00 Uhr deutscher Zeit) inklusive Zusatzprüfungen,
+#  - auf Knopfdruck (Actions -> Tests -> Run workflow),
+#  - und als Vorstufe des Deployments (deploy.yml ruft diese Datei auf, bevor etwas auf den Server kommt).
+# Auf Pushes nach main reagiert diese Datei bewusst nicht selbst, sonst würden die Tests dort doppelt laufen.
+on:
+  pull_request:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_CLI_UI_LANGUAGE: en
+
+jobs:
+  tests:
+    name: Unit- und Integrationstests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Wiederherstellen
+        run: dotnet restore ffw.Tests/ffw.Tests.csproj
+
+      - name: Bauen
+        run: dotnet build ffw.Tests/ffw.Tests.csproj --no-restore -c Release
+
+      # Die Integrationstests starten PostgreSQL per Testcontainers (Docker ist auf ubuntu-latest vorhanden).
+      - name: Testen
+        run: >
+          dotnet test ffw.Tests/ffw.Tests.csproj --no-build -c Release
+          --logger "trx;LogFileName=ergebnisse.trx"
+          --logger "console;verbosity=normal"
+          --results-directory TestResults
+
+      - name: Testergebnisse hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testergebnisse
+          path: TestResults
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ---- Ab hier nur nachts bzw. auf Knopfdruck, nicht bei Pull Requests und nicht vor dem Deployment ----
+
+  schwachstellen:
+    name: Bekannte Sicherheitslücken in Paketen
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Pakete prüfen
+        run: |
+          dotnet restore ffw/ffw.csproj
+          dotnet list ffw/ffw.csproj package --vulnerable --include-transitive 2>&1 | tee schwachstellen.txt
+          # dotnet list meldet Fundstellen nur im Text, nicht über den Exit-Code.
+          if grep -q "has the following vulnerable packages" schwachstellen.txt; then
+            echo "::error::Es gibt Pakete mit bekannten Sicherheitslücken (siehe Log)."
+            exit 1
+          fi
+
+  docker-build:
+    name: Docker-Image baut noch
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: docker-compose.yml ist gültig
+        run: POSTGRES_PASSWORD=ci docker compose config --quiet
+
+      - name: Image bauen (so wie beim Deployment)
+        run: docker build -f ffw/Dockerfile -t ffw:ci .
+
+  live-pruefung:
+    name: Live-Seite erreichbar und geschützt
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Smoke-Test gegen ffw-walting.de
+        run: bash scripts/smoke-test.sh https://ffw-walting.de
