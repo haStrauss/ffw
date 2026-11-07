@@ -149,3 +149,6 @@ static IResult FotoDatei(HttpContext context, string pfad)
     context.Response.Headers.XContentTypeOptions = "nosniff";
     return Results.File(pfad, "image/jpeg");
 }
+
+// Macht die Klasse Program für die Integrationstests (WebApplicationFactory) sichtbar.
+public partial class Program { }

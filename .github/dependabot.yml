@@ -1,0 +1,25 @@
+version: 2
+
+# Dependabot schlägt wöchentlich Updates als Pull Requests vor. Jeder dieser Pull Requests löst die Tests aus,
+# so sieht man sofort, ob ein Update etwas kaputt macht. (Pakete mit Platzhalter-Version wie 10.0.* holt sich
+# NuGet ohnehin selbst in der neuesten Patch-Version, Dependabot kümmert sich um den Rest.)
+updates:
+  - package-ecosystem: "nuget"
+    directories:
+      - "/ffw"
+      - "/ffw.Tests"
+    schedule:
+      interval: "weekly"
+    groups:
+      nuget:
+        update-types: [ "minor", "patch" ]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/ffw"
+    schedule:
+      interval: "weekly"
