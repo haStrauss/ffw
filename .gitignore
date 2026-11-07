@@ -2,3 +2,11 @@
 
 # Lokal hochgeladene Fotos (Entwicklung)
 ffw/data/
+
+# Build-Ergebnisse und Visual-Studio-Dateien
+bin/
+obj/
+.vs/
+
+# Testergebnisse
+TestResults/
