@@ -147,7 +147,8 @@ public sealed class FotoSpeicher
             using var leinwand = new SKCanvas(ziel);
             leinwand.Clear(SKColors.White);
             leinwand.SetMatrix(MatrixFuer(ausrichtung, w, h));
-            leinwand.DrawBitmap(bild, 0, 0);
+            // Nearest: Es wird nur gedreht oder gespiegelt, nie skaliert. So bleibt jeder Pixel unverändert.
+            leinwand.DrawBitmap(bild, 0, 0, new SKSamplingOptions(SKFilterMode.Nearest));
             return ziel;
         }
         catch
