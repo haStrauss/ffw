@@ -1,0 +1,554 @@
+:root {
+    --bg: #0F2A3D;
+    --fg: #ffffff;
+    --muted: rgba(255, 255, 255, 0.7);
+    --feld: rgba(255, 255, 255, 0.08);
+    --rand: rgba(255, 255, 255, 0.2);
+    --rot: #c61b21;
+    --rot-hell: #e8434a;
+    --wasser: #3aa7ff;
+    --gruen: #2EA043;
+    --warn: #ffb020;
+    /* Platz, den Kopfzeile und Bedienpult neben dem Spielfeld brauchen */
+    --reserve: 250px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    min-height: 100%;
+}
+
+body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.app {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 10px 16px 18px;
+}
+
+/* Kopfzeile */
+.kopf {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px 24px;
+    margin-bottom: 10px;
+}
+
+.titel {
+    display: flex;
+    flex-direction: column;
+}
+
+    .titel h1 {
+        font-size: 1.5rem;
+        line-height: 1.2;
+    }
+
+.zur-startseite {
+    align-self: flex-start;
+    padding: 2px 0;
+    font-size: 0.9rem;
+    color: var(--muted);
+    text-decoration: none;
+}
+
+    .zur-startseite:hover,
+    .zur-startseite:focus-visible {
+        color: var(--fg);
+    }
+
+.anzeigen {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+}
+
+.anzeige {
+    display: flex;
+    flex-direction: column;
+    min-width: 70px;
+    font-variant-numeric: tabular-nums;
+}
+
+    .anzeige strong {
+        font-size: 1.35rem;
+        line-height: 1.2;
+    }
+
+.beschriftung {
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+/* Spielfeld: immer im Seitenverhältnis des Fotos, aber nie höher als der Bildschirm erlaubt */
+.buehne {
+    position: relative;
+    width: min(100%, max(320px, calc((100vh - var(--reserve)) * 2200 / 949)));
+    width: min(100%, max(320px, calc((100dvh - var(--reserve)) * 2200 / 949)));
+    aspect-ratio: 2200 / 949;
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: 14px;
+    background: #000;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.szene {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.82) saturate(1.05);
+    pointer-events: none;
+    -webkit-user-drag: none;
+}
+
+.flaeche {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+.hinweis {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 92%;
+    padding: 8px 16px;
+    background: rgba(10, 20, 30, 0.82);
+    border: 1px solid var(--rand);
+    border-radius: 999px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: center;
+    pointer-events: none;
+}
+
+    .hinweis[hidden] {
+        display: none;
+    }
+
+/* Start-, Pause- und Endbildschirm */
+.overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    background: rgba(10, 20, 30, 0.76);
+    backdrop-filter: blur(3px);
+    overflow-y: auto;
+}
+
+    .overlay[hidden] {
+        display: none;
+    }
+
+.karte {
+    width: min(100%, 560px);
+    max-height: 100%;
+    padding: 20px 24px;
+    background: rgba(15, 42, 61, 0.96);
+    border: 1px solid var(--rand);
+    border-radius: 14px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+}
+
+    .karte h2 {
+        margin-bottom: 10px;
+        font-size: 1.35rem;
+    }
+
+    .karte p {
+        margin-bottom: 10px;
+        line-height: 1.5;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+.anleitung {
+    margin: 0 0 16px;
+    padding-left: 1.1rem;
+    line-height: 1.45;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.88);
+}
+
+    .anleitung li {
+        margin-bottom: 4px;
+    }
+
+.ergebnis {
+    margin: 0 0 16px;
+    padding: 0;
+    list-style: none;
+}
+
+    .ergebnis li {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--rand);
+        font-variant-numeric: tabular-nums;
+    }
+
+        .ergebnis li span {
+            color: var(--muted);
+        }
+
+/* Knöpfe */
+.knopf {
+    padding: 10px 16px;
+    background: var(--feld);
+    border: 1px solid var(--rand);
+    border-radius: 10px;
+    color: var(--fg);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+    .knopf:hover:not(:disabled),
+    .knopf:focus-visible:not(:disabled) {
+        background: rgba(255, 255, 255, 0.18);
+    }
+
+    .knopf:disabled {
+        opacity: 0.45;
+        cursor: default;
+    }
+
+    .knopf.bereit {
+        background: var(--gruen);
+        border-color: transparent;
+        animation: puls 1.4s ease-in-out infinite;
+    }
+
+        .knopf.bereit:hover {
+            background: #36b54d;
+        }
+
+.knopf-klein {
+    padding: 6px 14px;
+}
+
+.knopf-gross {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--rot);
+    border-color: transparent;
+    font-size: 1.15rem;
+}
+
+    .knopf-gross:hover:not(:disabled) {
+        background: var(--rot-hell);
+    }
+
+@keyframes puls {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(46, 160, 67, 0.55);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(46, 160, 67, 0);
+    }
+}
+
+.querformat-tipp {
+    display: none;
+    margin-top: 8px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+/* Bedienpult */
+.pult {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1.2fr;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.feld {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--feld);
+    border: 1px solid var(--rand);
+    border-radius: 12px;
+}
+
+.regler label {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 4px 12px;
+    font-weight: 600;
+}
+
+.regler output {
+    font-variant-numeric: tabular-nums;
+    color: var(--wasser);
+}
+
+.regler input[type="range"] {
+    width: 100%;
+    height: 44px;
+    accent-color: var(--wasser);
+    cursor: pointer;
+}
+
+.skala {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.78rem;
+    color: var(--muted);
+}
+
+.balken-kopf {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.spur {
+    height: 14px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.fuellung {
+    height: 100%;
+    width: 100%;
+    border-radius: 999px;
+    transition: background 0.2s ease;
+}
+
+    .fuellung.wasser {
+        background: var(--wasser);
+    }
+
+        .fuellung.wasser.knapp {
+            background: var(--warn);
+        }
+
+    .fuellung.schaden {
+        width: 0;
+        background: linear-gradient(90deg, #e0a030, var(--rot-hell));
+    }
+
+        .fuellung.schaden.kritisch {
+            background: var(--rot-hell);
+            animation: puls-rot 0.9s ease-in-out infinite;
+        }
+
+@keyframes puls-rot {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.55;
+    }
+}
+
+.geraet-name {
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+.geraet-daten {
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+
+.hilfe {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+    .hilfe input {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--rot);
+    }
+
+/* Schmale Bildschirme: Bedienpult untereinander */
+@media (max-width: 900px) {
+    :root {
+        --reserve: 230px;
+    }
+
+    .pult {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Smartphone im Hochformat: das Spielfeld ist schmal, daher der Hinweis zum Drehen.
+   Start-, Pause- und Endbildschirm füllen hier den ganzen Bildschirm, sonst passt die Karte nicht ins Spielfeld. */
+@media (orientation: portrait) and (max-width: 700px) {
+    .querformat-tipp {
+        display: block;
+    }
+
+    .buehne {
+        width: 100%;
+    }
+
+    .overlay {
+        position: fixed;
+        z-index: 10;
+        background: rgba(10, 20, 30, 0.92);
+    }
+
+    .karte {
+        padding: 16px 18px;
+    }
+}
+
+/* Smartphone im Querformat: wenig Höhe. Das Bedienpult steht daneben, damit man Wassermenge und Zielen ohne Scrollen bedient. */
+@media (orientation: landscape) and (max-height: 520px) {
+    .app {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 230px;
+        grid-template-areas: "kopf kopf" "buehne pult";
+        gap: 6px 10px;
+        align-items: start;
+        padding: 6px 10px 8px;
+    }
+
+    .kopf {
+        grid-area: kopf;
+        margin-bottom: 0;
+    }
+
+    .titel {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 12px;
+    }
+
+        .titel h1 {
+            font-size: 1.1rem;
+        }
+
+    .anzeigen {
+        gap: 4px 16px;
+    }
+
+    .anzeige {
+        flex-direction: row;
+        align-items: baseline;
+        gap: 6px;
+        min-width: 0;
+    }
+
+        .anzeige strong {
+            font-size: 1.05rem;
+        }
+
+    .buehne {
+        grid-area: buehne;
+        justify-self: center;
+        width: min(100%, calc((100vh - 52px) * 2200 / 949));
+        width: min(100%, calc((100dvh - 52px) * 2200 / 949));
+    }
+
+    .overlay {
+        position: fixed;
+        z-index: 10;
+        background: rgba(10, 20, 30, 0.92);
+    }
+
+    .karte {
+        padding: 10px 16px;
+    }
+
+    .anleitung {
+        font-size: 0.78rem;
+        margin-bottom: 8px;
+    }
+
+    .knopf-gross {
+        padding: 8px 12px;
+    }
+
+    .querformat-tipp {
+        display: none;
+    }
+
+    .pult {
+        grid-area: pult;
+        grid-template-columns: 1fr;
+        gap: 6px;
+        margin-top: 0;
+        max-height: calc(100vh - 52px);
+        max-height: calc(100dvh - 52px);
+        overflow-y: auto;
+    }
+
+    .feld {
+        gap: 6px;
+        padding: 8px 10px;
+    }
+
+    .skala,
+    .geraet-daten,
+    .hilfe {
+        display: none;
+    }
+
+    .regler input[type="range"] {
+        height: 36px;
+    }
+
+    .geraet-name {
+        font-size: 0.95rem;
+    }
+
+    .knopf {
+        padding: 6px 10px;
+        font-size: 0.85rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .knopf.bereit,
+    .fuellung.schaden.kritisch {
+        animation: none;
+    }
+}

@@ -15,6 +15,7 @@ public class ZugriffTests(AnwendungFixture app)
     [InlineData("/")]
     [InlineData("/anmelden")]
     [InlineData("/kostenuhr")]
+    [InlineData("/loeschspiel")]
     public async Task Oeffentliche_Seiten_sind_ohne_Anmeldung_erreichbar(string pfad)
     {
         var antwort = await app.NeuerClient().GetAsync(pfad);
