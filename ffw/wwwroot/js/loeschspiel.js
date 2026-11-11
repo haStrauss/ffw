@@ -158,7 +158,20 @@
         entzuenden(sp, stelle, hp);
     }
 
-    // Ein Spielschritt. "ein" enthält: x, y (Zielpunkt), spritzt (Taste gedrückt), fluss (Regler 0 bis 1).
+    // Zielhilfe: Liegt der Zielpunkt innerhalb von "toleranz" (Spielfeld-Einheiten) um einen Brand, wird dieser Brand angepeilt.
+    // Auf dem Smartphone ist der Finger viel größer als ein Brand und verdeckt ihn, ohne Zielhilfe träfe man kaum.
+    // Der Brand selbst gilt mindestens mit seiner eigenen Größe als getroffen.
+    function zielhilfe(sp, x, y, toleranz) {
+        var nah = null, best = Infinity;
+        sp.feuer.forEach(function (f) {
+            var a = abstand(x, y, f.x, f.y);
+            if (a <= Math.max(toleranz || 0, radius(f.hp) * 0.85 + 10) && a < best) { best = a; nah = f; }
+        });
+        return nah ? { x: nah.x, y: nah.y } : { x: x, y: y };
+    }
+
+    // Ein Spielschritt. "ein" enthält: x, y (Zielpunkt), spritzt (Taste gedrückt), fluss (Regler 0 bis 1)
+    // und optional zielhilfe (Toleranz um den Zielpunkt in Spielfeld-Einheiten).
     function schritt(sp, ein, dt) {
         if (sp.vorbei) return;
         sp.ereignisse = [];
@@ -196,11 +209,12 @@
             if (rate > 0.001) {
                 var anteil = rate / g.rate;
                 var weite = reichweite(g, anteil);
-                var dx = ein.x - DUESE.x, dy = ein.y - DUESE.y;
+                var ziel = zielhilfe(sp, ein.x, ein.y, ein.zielhilfe);
+                var dx = ziel.x - DUESE.x, dy = ziel.y - DUESE.y;
                 var d = Math.sqrt(dx * dx + dy * dy) || 1;
                 var kurz = d > weite;
-                var lx = kurz ? DUESE.x + dx / d * weite : ein.x;
-                var ly = kurz ? DUESE.y + dy / d * weite : ein.y;
+                var lx = kurz ? DUESE.x + dx / d * weite : ziel.x;
+                var ly = kurz ? DUESE.y + dy / d * weite : ziel.y;
 
                 var treffer = null, besser = Infinity;
                 sp.feuer.forEach(function (f) {
@@ -217,11 +231,12 @@
                 // Gibt es einen Brand in Zielnähe, den der Strahl nicht erreicht?
                 var zuKurz = false;
                 if (kurz && !treffer) {
-                    zuKurz = sp.feuer.some(function (f) { return abstand(ein.x, ein.y, f.x, f.y) <= radius(f.hp) * 1.4 + 20; });
+                    zuKurz = sp.feuer.some(function (f) { return abstand(ziel.x, ziel.y, f.x, f.y) <= radius(f.hp) * 1.4 + 20; });
                 }
 
                 sp.strahl = {
                     aktiv: true, fluss: anteil, rate: rate, weite: weite,
+                    zielX: ziel.x, zielY: ziel.y,
                     landeX: lx, landeY: ly, kurz: kurz, zuKurz: zuKurz,
                     treffer: treffer, verdampft: verdampft,
                     leer: verbraucht < gewollt - 1e-9
@@ -270,7 +285,7 @@
 
     var Modell = {
         WELT: WELT, DUESE: DUESE, MAX_HP: MAX_HP, MAX_FEUER: MAX_FEUER, GERAETE: GERAETE, BRANDSTELLEN: BRANDSTELLEN,
-        abstand: abstand, reichweite: reichweite, mindestrate: mindestrate, wirkrate: wirkrate, wachstum: wachstum, radius: radius,
+        abstand: abstand, zielhilfe: zielhilfe, reichweite: reichweite, mindestrate: mindestrate, wirkrate: wirkrate, wachstum: wachstum, radius: radius,
         groesse: groesse, loeschwirkung: loeschwirkung, intervall: intervall,
         neuesSpiel: neuesSpiel, schritt: schritt, naechstesGeraet: naechstesGeraet, upgradeMoeglich: upgradeMoeglich, upgraden: upgraden
     };
@@ -302,7 +317,9 @@
     var sp = Modell.neuesSpiel();
     var phase = 'start';                   // start | laeuft | pause | ende
     var eingabe = { x: DUESE.x, y: 420, spritzt: false, fluss: 0.5 };
-    var zeigerDruck = false, tasteDruck = false, zeigerId = null, zeigerDa = false;
+    var zeigerDruck = false, tasteDruck = false, zeigerId = null, zeigerDa = false, zeigerArt = 'mouse';
+    // So großzügig (in Bildschirm-Pixeln) wird ein Brand um den Zielpunkt herum angepeilt. Ein Finger deckt viel mehr ab als ein Mauszeiger.
+    var ZIELHILFE_PX = { mouse: 10, pen: 22, touch: 44 };
     var teilchen = [];
     var tropfenZaehler = 0;
     var meldungText = '', meldungBis = 0;
@@ -353,6 +370,7 @@
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         if (zeigerId !== null) return;
         zeigerId = e.pointerId;
+        zeigerArt = e.pointerType || 'mouse';
         zeigerDa = true;
         zeigerDruck = true;
         zielSetzen(e);
@@ -363,6 +381,7 @@
     flaeche.addEventListener('pointermove', function (e) {
         if (zeigerId !== null && e.pointerId !== zeigerId) return;
         zeigerDa = true;
+        zeigerArt = e.pointerType || 'mouse';
         zielSetzen(e);
     });
 
@@ -596,6 +615,8 @@
     // ---------- Spielschritt ----------
     function aktualisieren(dt) {
         eingabe.spritzt = zeigerDruck || tasteDruck;
+        // Bildschirm-Pixel in Spielfeld-Einheiten umrechnen (sk zählt Zeichenpixel, also einschließlich Geräte-Pixelverhältnis).
+        eingabe.zielhilfe = (ZIELHILFE_PX[zeigerArt] || ZIELHILFE_PX.mouse) * dpr / sk;
         Modell.schritt(sp, eingabe, dt);
 
         var s = sp.strahl;
@@ -757,22 +778,32 @@
         ctx.restore();
     }
 
+    // Dort zielt das Strahlrohr hin: auf den angepeilten Brand, sonst auf den Zeiger.
+    function zielpunkt() {
+        var s = sp.strahl;
+        if (s && s.aktiv) return { x: s.zielX, y: s.zielY };
+        return Modell.zielhilfe(sp, eingabe.x, eingabe.y, eingabe.zielhilfe);
+    }
+
     function zielkreuzZeichnen() {
         if (!zeigerDa && !zeigerDruck) return;
         var g = GERAETE[sp.stufe];
         var weite = Modell.reichweite(g, eingabe.fluss);
-        var d = abstand(DUESE.x, DUESE.y, eingabe.x, eingabe.y);
+        var z = zielpunkt();
+        var d = abstand(DUESE.x, DUESE.y, z.x, z.y);
         var erreichbar = d <= weite;
         var farbe = erreichbar ? 'rgba(255,255,255,0.9)' : 'rgba(255,170,70,0.95)';
+        // Das Kreuz bleibt auf dem Bildschirm gleich groß, egal wie klein das Spielfeld ist.
+        var m = dpr / sk;
         ctx.save();
         ctx.strokeStyle = farbe;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 2.5 * m;
         ctx.beginPath();
-        ctx.arc(eingabe.x, eingabe.y, 14, 0, Math.PI * 2);
-        ctx.moveTo(eingabe.x - 28, eingabe.y); ctx.lineTo(eingabe.x - 18, eingabe.y);
-        ctx.moveTo(eingabe.x + 18, eingabe.y); ctx.lineTo(eingabe.x + 28, eingabe.y);
-        ctx.moveTo(eingabe.x, eingabe.y - 28); ctx.lineTo(eingabe.x, eingabe.y - 18);
-        ctx.moveTo(eingabe.x, eingabe.y + 18); ctx.lineTo(eingabe.x, eingabe.y + 28);
+        ctx.arc(z.x, z.y, 14 * m, 0, Math.PI * 2);
+        ctx.moveTo(z.x - 28 * m, z.y); ctx.lineTo(z.x - 18 * m, z.y);
+        ctx.moveTo(z.x + 18 * m, z.y); ctx.lineTo(z.x + 28 * m, z.y);
+        ctx.moveTo(z.x, z.y - 28 * m); ctx.lineTo(z.x, z.y - 18 * m);
+        ctx.moveTo(z.x, z.y + 18 * m); ctx.lineTo(z.x, z.y + 28 * m);
         ctx.stroke();
         ctx.restore();
     }
@@ -839,7 +870,8 @@
         ctx.clearRect(0, 0, flaeche.width, flaeche.height);
         ctx.setTransform(sk, 0, 0, sk, 0, 0);
 
-        var winkel = Math.atan2(eingabe.y - DUESE.y, eingabe.x - DUESE.x);
+        var ziel = zielpunkt();
+        var winkel = Math.atan2(ziel.y - DUESE.y, ziel.x - DUESE.x);
 
         if (phase === 'laeuft') reichweiteZeichnen();
 
@@ -900,7 +932,7 @@
 
         var n = Modell.naechstesGeraet(sp);
         if (n) {
-            setzeText(upgradeEl, 'upgrade', 'Aufrüsten: ' + n.name + ' (' + n.kosten + ' Punkte)');
+            setzeText(upgradeEl, 'upgrade', 'Aufrüsten: ' + n.kurz + ' (' + n.kosten + ' Punkte)');
             upgradeEl.disabled = !Modell.upgradeMoeglich(sp);
             upgradeEl.classList.toggle('bereit', !upgradeEl.disabled);
         } else {
