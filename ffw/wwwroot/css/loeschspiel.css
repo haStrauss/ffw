@@ -9,8 +9,8 @@
     --wasser: #3aa7ff;
     --gruen: #2EA043;
     --warn: #ffb020;
-    /* Platz, den Kopfzeile und Bedienpult neben dem Spielfeld brauchen */
-    --reserve: 250px;
+    /* Höhe, die Kopfzeile, Bedienpult und Abstände neben dem Spielfeld brauchen */
+    --reserve: 150px;
 }
 
 * {
@@ -31,9 +31,8 @@ body {
 }
 
 .app {
-    max-width: 1500px;
     margin: 0 auto;
-    padding: 10px 16px 18px;
+    padding: 6px 12px 10px;
 }
 
 /* Kopfzeile */
@@ -42,24 +41,27 @@ body {
     flex-wrap: wrap;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 8px 24px;
-    margin-bottom: 10px;
+    gap: 4px 24px;
+    margin-bottom: 6px;
 }
 
 .titel {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 4px 14px;
 }
 
     .titel h1 {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         line-height: 1.2;
     }
 
 .zur-startseite {
-    align-self: flex-start;
+    align-self: baseline;
+    order: 2;
     padding: 2px 0;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--muted);
     text-decoration: none;
 }
@@ -73,23 +75,23 @@ body {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 8px 20px;
+    gap: 4px 18px;
 }
 
 .anzeige {
     display: flex;
     flex-direction: column;
-    min-width: 70px;
+    min-width: 56px;
     font-variant-numeric: tabular-nums;
 }
 
     .anzeige strong {
-        font-size: 1.35rem;
-        line-height: 1.2;
+        font-size: 1.1rem;
+        line-height: 1.15;
     }
 
 .beschriftung {
-    font-size: 0.75rem;
+    font-size: 0.66rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--muted);
@@ -286,29 +288,32 @@ body {
     color: var(--muted);
 }
 
-/* Bedienpult */
+/* Bedienpult: eine schmale Zeile unter dem Spielfeld */
 .pult {
     display: grid;
-    grid-template-columns: 1.4fr 1fr 1.2fr;
-    gap: 12px;
-    margin-top: 12px;
+    grid-template-columns: 1.2fr 1fr 1.5fr;
+    gap: 8px;
+    margin-top: 8px;
 }
 
 .feld {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 12px 14px;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    padding: 6px 10px;
     background: var(--feld);
     border: 1px solid var(--rand);
-    border-radius: 12px;
+    border-radius: 10px;
 }
 
 .regler label {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    gap: 4px 12px;
+    gap: 0 12px;
+    font-size: 0.85rem;
     font-weight: 600;
 }
 
@@ -319,29 +324,38 @@ body {
 
 .regler input[type="range"] {
     width: 100%;
-    height: 44px;
+    height: 26px;
     accent-color: var(--wasser);
     cursor: pointer;
 }
 
-.skala {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    font-size: 0.78rem;
-    color: var(--muted);
+/* Wasser und Schaden: Name, Balken und Wert in einer Zeile */
+.balken {
+    display: grid;
+    grid-template-columns: 3.4rem minmax(0, 1fr) 2.6rem;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .balken-kopf {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 4px;
-    font-size: 0.9rem;
-    font-variant-numeric: tabular-nums;
+    display: contents;
 }
 
+    .balken-kopf span:first-child {
+        order: 1;
+    }
+
+    .balken-kopf span:last-child {
+        order: 3;
+        text-align: right;
+    }
+
 .spur {
-    height: 14px;
+    order: 2;
+    height: 10px;
     background: rgba(255, 255, 255, 0.15);
     border-radius: 999px;
     overflow: hidden;
@@ -382,51 +396,94 @@ body {
     }
 }
 
+/* Ausrüstung: Name und Daten links, Aufrüsten-Knopf rechts */
+.ausruestung {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 12.5rem);
+    grid-template-areas: "name knopf" "daten knopf" "hilfe hilfe";
+    align-items: center;
+    gap: 1px 10px;
+}
+
 .geraet-name {
+    grid-area: name;
+    overflow: hidden;
     font-weight: 700;
-    font-size: 1.05rem;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .geraet-daten {
-    font-size: 0.82rem;
+    grid-area: daten;
+    overflow: hidden;
+    font-size: 0.7rem;
     color: var(--muted);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ausruestung .knopf {
+    grid-area: knopf;
+    width: 100%;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    line-height: 1.2;
 }
 
 .hilfe {
+    grid-area: hilfe;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 0.85rem;
+    gap: 6px;
+    margin-top: 2px;
+    font-size: 0.75rem;
     color: var(--muted);
     cursor: pointer;
 }
 
     .hilfe input {
-        width: 18px;
-        height: 18px;
+        width: 15px;
+        height: 15px;
         accent-color: var(--rot);
     }
 
-/* Schmale Bildschirme: Bedienpult untereinander */
-@media (max-width: 900px) {
-    :root {
-        --reserve: 230px;
-    }
-
-    .pult {
-        grid-template-columns: 1fr;
+/* Touchbedienung: der Regler braucht mehr Höhe, damit man ihn mit dem Daumen trifft */
+@media (pointer: coarse) {
+    .regler input[type="range"] {
+        height: 36px;
     }
 }
 
-/* Smartphone im Hochformat: das Spielfeld ist schmal, daher der Hinweis zum Drehen.
+/* Schmale Bildschirme: Regler, Messwerte und Ausrüstung untereinander, jede Karte über die ganze Breite */
+@media (max-width: 760px) {
+    .pult {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+}
+
+/* Smartphone im Hochformat: das Spielfeld füllt die ganze Breite. Der Hinweis zum Drehen steht darunter.
    Start-, Pause- und Endbildschirm füllen hier den ganzen Bildschirm, sonst passt die Karte nicht ins Spielfeld. */
 @media (orientation: portrait) and (max-width: 700px) {
+    .app {
+        padding: 4px 0 10px;
+    }
+
+    .kopf,
+    .pult,
+    .querformat-tipp {
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+
     .querformat-tipp {
         display: block;
     }
 
     .buehne {
         width: 100%;
+        border-radius: 0;
     }
 
     .overlay {
@@ -440,15 +497,15 @@ body {
     }
 }
 
-/* Smartphone im Querformat: wenig Höhe. Das Bedienpult steht daneben, damit man Wassermenge und Zielen ohne Scrollen bedient. */
+/* Smartphone im Querformat: wenig Höhe. Das Bedienpult steht schmal daneben, damit das Spielfeld die ganze Höhe nutzt. */
 @media (orientation: landscape) and (max-height: 520px) {
     .app {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 230px;
+        grid-template-columns: minmax(0, 1fr) 164px;
         grid-template-areas: "kopf kopf" "buehne pult";
-        gap: 6px 10px;
+        gap: 4px 8px;
         align-items: start;
-        padding: 6px 10px 8px;
+        padding: 4px 8px 6px;
     }
 
     .kopf {
@@ -456,18 +513,12 @@ body {
         margin-bottom: 0;
     }
 
-    .titel {
-        flex-direction: row;
-        align-items: baseline;
-        gap: 12px;
+    .titel h1 {
+        font-size: 1rem;
     }
 
-        .titel h1 {
-            font-size: 1.1rem;
-        }
-
     .anzeigen {
-        gap: 4px 16px;
+        gap: 2px 14px;
     }
 
     .anzeige {
@@ -478,14 +529,14 @@ body {
     }
 
         .anzeige strong {
-            font-size: 1.05rem;
+            font-size: 1rem;
         }
 
     .buehne {
         grid-area: buehne;
         justify-self: center;
-        width: min(100%, calc((100vh - 52px) * 2200 / 949));
-        width: min(100%, calc((100dvh - 52px) * 2200 / 949));
+        width: min(100%, calc((100vh - 36px) * 2200 / 949));
+        width: min(100%, calc((100dvh - 36px) * 2200 / 949));
     }
 
     .overlay {
@@ -514,35 +565,37 @@ body {
     .pult {
         grid-area: pult;
         grid-template-columns: 1fr;
-        gap: 6px;
+        gap: 4px;
         margin-top: 0;
-        max-height: calc(100vh - 52px);
-        max-height: calc(100dvh - 52px);
+        max-height: calc(100vh - 36px);
+        max-height: calc(100dvh - 36px);
         overflow-y: auto;
     }
 
     .feld {
-        gap: 6px;
-        padding: 8px 10px;
+        gap: 3px;
+        padding: 5px 8px;
     }
 
-    .skala,
     .geraet-daten,
     .hilfe {
         display: none;
     }
 
+    .ausruestung {
+        grid-template-areas: "name" "knopf";
+        grid-template-columns: minmax(0, 1fr);
+        gap: 3px;
+    }
+
+    .balken {
+        grid-template-columns: 2.9rem minmax(0, 1fr) 2.5rem;
+        gap: 6px;
+        font-size: 0.74rem;
+    }
+
     .regler input[type="range"] {
-        height: 36px;
-    }
-
-    .geraet-name {
-        font-size: 0.95rem;
-    }
-
-    .knopf {
-        padding: 6px 10px;
-        font-size: 0.85rem;
+        height: 32px;
     }
 }
 

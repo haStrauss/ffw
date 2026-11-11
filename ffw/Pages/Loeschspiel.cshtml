@@ -45,8 +45,8 @@
                     <div id="overlay-text">
                         <p>Rund um das Gerätehaus entstehen Brände. Lösche sie, bevor das Gebäude Schaden nimmt.</p>
                         <ul class="anleitung">
-                            <li><strong>Zielen:</strong> Maus bewegen oder mit dem Finger auf den Brand zeigen.</li>
-                            <li><strong>Spritzen:</strong> Maustaste, Leertaste oder Finger gedrückt halten.</li>
+                            <li><strong>Zielen:</strong> Maus bewegen oder mit dem Finger in die Nähe des Brandes zeigen, der Strahl peilt ihn dann an.</li>
+                            <li><strong>Spritzen:</strong> Maustaste, Leertaste oder Finger gedrückt halten (nicht nur antippen).</li>
                             <li><strong>Wassermenge:</strong> mit dem Regler, dem Mausrad oder den Tasten W/S bzw. Pfeil hoch/runter einstellen.</li>
                             <li><strong>Zu wenig Wasser:</strong> Der Strahl reicht nicht bis zum Brand, oder das Wasser verdampft, ohne zu löschen.</li>
                             <li><strong>Zu viel Wasser:</strong> Der Vorrat ist schnell leer, danach kommt nur noch ein Rinnsal.</li>
@@ -64,16 +64,15 @@
             <div class="feld regler">
                 <label for="durchfluss">Wassermenge <output id="durchfluss-wert" for="durchfluss">50 %</output></label>
                 <input type="range" id="durchfluss" min="0" max="100" step="1" value="50" />
-                <div class="skala"><span>wenig: kurzer Strahl</span><span>viel: weiter Strahl, Tank leert sich</span></div>
             </div>
 
             <div class="feld messung">
                 <div class="balken">
-                    <div class="balken-kopf"><span>Wasservorrat</span><span id="tank-text">100 %</span></div>
+                    <div class="balken-kopf"><span>Wasser</span><span id="tank-text">100 %</span></div>
                     <div class="spur"><div class="fuellung wasser" id="tank-fuellung"></div></div>
                 </div>
                 <div class="balken">
-                    <div class="balken-kopf"><span>Schaden am Gebäude</span><span id="schaden-text">0 %</span></div>
+                    <div class="balken-kopf"><span>Schaden</span><span id="schaden-text">0 %</span></div>
                     <div class="spur"><div class="fuellung schaden" id="schaden-fuellung"></div></div>
                 </div>
             </div>
@@ -82,7 +81,7 @@
                 <div class="geraet-name" id="geraet-name">Gartenschlauch</div>
                 <div class="geraet-daten" id="geraet-daten"></div>
                 <button type="button" id="btn-upgrade" class="knopf" disabled>Aufrüsten</button>
-                <label class="hilfe"><input type="checkbox" id="hilfe-an" checked /> Hinweise an den Bränden zeigen</label>
+                <label class="hilfe"><input type="checkbox" id="hilfe-an" checked /> Hinweise an den Bränden</label>
             </div>
         </section>
 
