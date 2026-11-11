@@ -321,6 +321,7 @@
     // So großzügig (in Bildschirm-Pixeln) wird ein Brand um den Zielpunkt herum angepeilt. Ein Finger deckt viel mehr ab als ein Mauszeiger.
     var ZIELHILFE_PX = { mouse: 10, pen: 22, touch: 44 };
     var teilchen = [];
+    var upgradeWarBereit = false;          // damit der Hinweiston nur einmal kommt, wenn das Upgrade bezahlbar wird
     var tropfenZaehler = 0;
     var meldungText = '', meldungBis = 0;
     var dpr = 1, sk = 1, schriftKlein = 12, schriftGross = 22;
@@ -339,6 +340,318 @@
     function ladeHilfe() {
         try { return localStorage.getItem(HILFE_SCHLUESSEL) !== '0'; } catch (e) { return true; }
     }
+
+    // ---------- Ton ----------
+    // Alle Geräusche werden live mit der Web-Audio-API erzeugt, es gibt keine Audiodateien.
+    // Browser erlauben Ton erst nach einer Bedienung durch den Spieler (Klick, Tippen, Taste). Bis dahin bleibt es stumm.
+    var TON_SCHLUESSEL = 'loeschspiel.ton';
+    var tonEl = $('btn-ton');
+
+    var Ton = (function () {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        var ac = null, master = null, rauschen = null, dauer = null;
+        var an = true;
+        var knisterRest = 1, pieps = { tank: 0, schaden: 0 };
+        try { an = localStorage.getItem(TON_SCHLUESSEL) !== '0'; } catch (e) { }
+
+        function nichts() { }
+        function bereit() { return !!ac && an && ac.state === 'running'; }
+
+        // Rosa Rauschen klingt nach Wasser und Feuer und ist weicher als weißes Rauschen.
+        function rauschenBauen() {
+            var laenge = Math.round(ac.sampleRate * 2);
+            var puffer = ac.createBuffer(1, laenge, ac.sampleRate);
+            var d = puffer.getChannelData(0);
+            var b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+            for (var i = 0; i < laenge; i++) {
+                var w = Math.random() * 2 - 1;
+                b0 = 0.99886 * b0 + w * 0.0555179;
+                b1 = 0.99332 * b1 + w * 0.0750759;
+                b2 = 0.96900 * b2 + w * 0.1538520;
+                b3 = 0.86650 * b3 + w * 0.3104856;
+                b4 = 0.55000 * b4 + w * 0.5329522;
+                b5 = -0.7616 * b5 - w * 0.0168980;
+                d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
+                b6 = w * 0.115926;
+            }
+            return puffer;
+        }
+
+        // Eine dauerhaft laufende Rauschquelle, deren Lautstärke das Spiel laufend nachführt.
+        function dauerQuelle(typ, freq, q) {
+            var quelle = ac.createBufferSource();
+            quelle.buffer = rauschen;
+            quelle.loop = true;
+            var filter = ac.createBiquadFilter();
+            filter.type = typ;
+            filter.frequency.value = freq;
+            filter.Q.value = q;
+            var g = ac.createGain();
+            g.gain.value = 0;
+            quelle.connect(filter);
+            filter.connect(g);
+            g.connect(master);
+            quelle.start(0, Math.random() * 1.5);
+            return { filter: filter, g: g };
+        }
+
+        function init() {
+            if (ac || !AC) return;
+            try {
+                ac = new AC();
+                master = ac.createGain();
+                master.gain.value = an ? 0.8 : 0;
+                // Der Kompressor fängt Spitzen ab, wenn viele Geräusche zusammenkommen.
+                var komp = ac.createDynamicsCompressor();
+                komp.threshold.value = -14;
+                komp.knee.value = 12;
+                komp.ratio.value = 6;
+                komp.attack.value = 0.003;
+                komp.release.value = 0.2;
+                master.connect(komp);
+                komp.connect(ac.destination);
+                rauschen = rauschenBauen();
+                dauer = {
+                    strahl: dauerQuelle('bandpass', 1800, 0.7),   // Wasserstrahl
+                    zisch: dauerQuelle('highpass', 4500, 0.5),    // Zischen am Feuer
+                    brausen: dauerQuelle('lowpass', 350, 0.7)     // Rauschen der Flammen
+                };
+            } catch (e) {
+                ac = null;
+            }
+        }
+
+        // Lautstärkeverlauf: schnell hoch, dann ausklingen.
+        function huellkurve(g, t, spitze, laenge) {
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.linearRampToValueAtTime(spitze, t + 0.006);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + laenge);
+        }
+
+        function ton(freq, t, laenge, art, laut, bis) {
+            var o = ac.createOscillator(), g = ac.createGain();
+            o.type = art;
+            o.frequency.setValueAtTime(freq, t);
+            if (bis) o.frequency.exponentialRampToValueAtTime(bis, t + laenge);
+            huellkurve(g, t, laut, laenge);
+            o.connect(g);
+            g.connect(master);
+            o.start(t);
+            o.stop(t + laenge + 0.05);
+        }
+
+        function stoss(t, laenge, typ, f0, f1, laut, q) {
+            var quelle = ac.createBufferSource();
+            quelle.buffer = rauschen;
+            var filter = ac.createBiquadFilter(), g = ac.createGain();
+            filter.type = typ;
+            filter.Q.value = q || 0.8;
+            filter.frequency.setValueAtTime(f0, t);
+            if (f1) filter.frequency.exponentialRampToValueAtTime(f1, t + laenge);
+            huellkurve(g, t, laut, laenge);
+            quelle.connect(filter);
+            filter.connect(g);
+            g.connect(master);
+            quelle.start(t, Math.random() * 1.5, laenge + 0.05);
+        }
+
+        function folge(noten, t, abstand, art, laut, laenge) {
+            noten.forEach(function (f, i) { ton(f, t + i * abstand, laenge, art, laut); });
+        }
+
+        function setze(param, wert, t, zeit) { param.setTargetAtTime(wert, t, zeit); }
+
+        function beschriften() {
+            if (!tonEl) return;
+            tonEl.hidden = !AC;
+            tonEl.textContent = an ? 'Ton an' : 'Ton aus';
+            tonEl.setAttribute('aria-pressed', an ? 'true' : 'false');
+        }
+        beschriften();
+
+        return {
+            // Muss aus einer Bedienung heraus aufgerufen werden (Klick, Tippen, Taste).
+            entsperren: function () {
+                init();
+                if (ac && ac.state === 'suspended' && phase !== 'pause') ac.resume().catch(nichts);
+            },
+
+            umschalten: function () {
+                an = !an;
+                try { localStorage.setItem(TON_SCHLUESSEL, an ? '1' : '0'); } catch (e) { }
+                if (master) setze(master.gain, an ? 0.8 : 0, ac.currentTime, 0.03);
+                beschriften();
+            },
+
+            // Alarm beim Start: zwei Töne wie ein Martinshorn.
+            start: function () {
+                if (!ac || !an) return;
+                var los = function () {
+                    var t = ac.currentTime + 0.02;
+                    var o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
+                    o.type = 'sawtooth';
+                    o.frequency.setValueAtTime(435, t);
+                    o.frequency.setTargetAtTime(580, t + 0.45, 0.02);
+                    o.frequency.setTargetAtTime(435, t + 0.9, 0.02);
+                    f.type = 'lowpass';
+                    f.frequency.value = 1700;
+                    g.gain.setValueAtTime(0.0001, t);
+                    g.gain.linearRampToValueAtTime(0.1, t + 0.04);
+                    g.gain.setValueAtTime(0.1, t + 1.25);
+                    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+                    o.connect(f);
+                    f.connect(g);
+                    g.connect(master);
+                    o.start(t);
+                    o.stop(t + 1.6);
+                };
+                if (ac.state === 'running') los(); else ac.resume().then(los).catch(nichts);
+            },
+
+            // Wird in jedem Spielschritt aufgerufen und führt die Dauergeräusche nach.
+            update: function (sp, dt) {
+                if (!bereit()) return;
+                var t = ac.currentTime, s = sp.strahl, stufe = sp.stufe;
+
+                // Wasserstrahl: lauter und tiefer bei mehr Wasser und größerem Rohr. Bei leerem Vorrat stottert er.
+                var strahlLaut = 0, strahlFreq = 1800, strahlZeit = 0.04, zischLaut = 0;
+                if (s && s.aktiv) {
+                    var f = Math.sqrt(s.fluss);
+                    strahlLaut = (0.07 + 0.2 * f) * (0.85 + 0.15 * stufe);
+                    strahlFreq = (2600 - 330 * stufe) * (0.5 + 0.5 * f);
+                    if (s.leer) { strahlLaut *= Math.random() < 0.5 ? 0.45 : 0.05; strahlZeit = 0.015; }
+                    if (s.treffer) zischLaut = (s.verdampft ? 0.12 : 0.07) * (0.5 + 0.5 * Math.min(1, s.treffer.hp / 120));
+                }
+                setze(dauer.strahl.g.gain, strahlLaut, t, strahlZeit);
+                setze(dauer.strahl.filter.frequency, strahlFreq, t, 0.05);
+                setze(dauer.zisch.g.gain, zischLaut, t, 0.05);
+
+                // Flammen: je mehr und je größer die Brände, desto lauter Rauschen und Knistern.
+                var hitze = 0;
+                sp.feuer.forEach(function (b) { hitze += Math.min(1, b.hp / 320); });
+                setze(dauer.brausen.g.gain, hitze > 0 ? Math.min(0.1, 0.01 + 0.012 * hitze) : 0, t, 0.3);
+                setze(dauer.brausen.filter.frequency, 260 + 60 * Math.min(hitze, 5), t, 0.3);
+                if (hitze > 0) {
+                    knisterRest -= dt * Math.min(25, 2 + 5 * Math.pow(hitze, 0.8));
+                    for (var n = 0; knisterRest <= 0 && n < 3; n++) {
+                        stoss(t + Math.random() * dt, 0.012 + Math.random() * 0.03, 'bandpass', 1200 + Math.random() * 3800, 0, 0.03 + 0.05 * Math.random(), 2);
+                        knisterRest += 0.6 + Math.random() * 0.8;
+                    }
+                }
+
+                // Wasser fast leer: leises Piepen, solange gespritzt wird.
+                if (s && s.aktiv && sp.tank < 0.15 * GERAETE[stufe].tank) {
+                    pieps.tank -= dt;
+                    if (pieps.tank <= 0) { ton(740, t, 0.07, 'square', 0.035); pieps.tank = 0.45; }
+                } else {
+                    pieps.tank = 0;
+                }
+
+                // Gebäude in Gefahr: tiefer Warnton, der mit dem Schaden schneller wird.
+                if (sp.schaden > 66) {
+                    pieps.schaden -= dt;
+                    if (pieps.schaden <= 0) { ton(330, t, 0.16, 'sawtooth', 0.05); pieps.schaden = 1.3 - 0.7 * Math.min(1, (sp.schaden - 66) / 34); }
+                } else {
+                    pieps.schaden = 0;
+                }
+            },
+
+            neuerBrand: function () {
+                if (!bereit()) return;
+                var t = ac.currentTime;
+                stoss(t, 0.45, 'bandpass', 220, 1400, 0.22, 0.9);
+                ton(95, t, 0.3, 'sine', 0.25, 48);
+            },
+
+            // "groesse" ist die größte Stärke, die der Brand hatte: Große Brände klingen kräftiger.
+            geloescht: function (groesse) {
+                if (!bereit()) return;
+                var t = ac.currentTime, gr = Math.min(1, groesse / 120);
+                stoss(t, 0.35 + 0.3 * gr, 'highpass', 2600, 6000, 0.14 + 0.1 * gr, 0.5);
+                ton(988, t + 0.04, 0.28, 'sine', 0.11);
+                ton(1319, t + 0.12, 0.34, 'sine', 0.09);
+            },
+
+            upgradeBereit: function () {
+                if (!bereit()) return;
+                var t = ac.currentTime;
+                ton(1175, t, 0.4, 'sine', 0.1);
+                ton(1568, t + 0.13, 0.5, 'sine', 0.08);
+            },
+
+            upgradeGekauft: function (stufe) {
+                if (!bereit()) return;
+                var t = ac.currentTime, grund = 523 * Math.pow(1.12, Math.max(0, stufe - 1));
+                stoss(t, 0.55, 'bandpass', 300, 1800, 0.2, 1.2);
+                folge([grund, grund * 1.26, grund * 1.5, grund * 2], t + 0.1, 0.09, 'triangle', 0.12, 0.35);
+            },
+
+            ende: function (neuerRekord) {
+                if (!ac) return;
+                this.dauerAus();
+                if (!bereit()) return;
+                var t = ac.currentTime + 0.05;
+                if (neuerRekord) {
+                    folge([523, 659, 784, 1047, 1319], t, 0.11, 'triangle', 0.13, 0.45);
+                } else {
+                    var o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
+                    o.type = 'sawtooth';
+                    o.frequency.setValueAtTime(330, t);
+                    o.frequency.exponentialRampToValueAtTime(82, t + 1.4);
+                    f.type = 'lowpass';
+                    f.frequency.value = 800;
+                    huellkurve(g, t, 0.16, 1.5);
+                    o.connect(f);
+                    f.connect(g);
+                    g.connect(master);
+                    o.start(t);
+                    o.stop(t + 1.6);
+                    ton(60, t, 0.5, 'sine', 0.25);
+                }
+            },
+
+            // Dauergeräusche ausblenden (am Spielende).
+            dauerAus: function () {
+                if (!ac || !dauer) return;
+                var t = ac.currentTime;
+                Object.keys(dauer).forEach(function (k) { setze(dauer[k].g.gain, 0, t, 0.02); });
+                pieps.tank = 0;
+                pieps.schaden = 0;
+            },
+
+            // Pause: sofort still, auch die Dauergeräusche, und den Ton anhalten.
+            pause: function () {
+                if (!ac || !dauer) return;
+                var t = ac.currentTime;
+                Object.keys(dauer).forEach(function (k) {
+                    dauer[k].g.gain.cancelScheduledValues(t);
+                    dauer[k].g.gain.setValueAtTime(0, t);
+                });
+                pieps.tank = 0;
+                pieps.schaden = 0;
+                if (ac.state === 'running') ac.suspend().catch(nichts);
+            },
+
+            weiter: function () {
+                if (ac && ac.state === 'suspended') ac.resume().catch(nichts);
+            }
+        };
+    })();
+
+    if (tonEl) {
+        tonEl.addEventListener('click', function () {
+            Ton.entsperren();
+            Ton.umschalten();
+            tonEl.blur();
+        });
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if ((e.key === 'm' || e.key === 'M') && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            Ton.entsperren();
+            Ton.umschalten();
+        }
+    });
 
     // ---------- Größe ----------
     function groesseAnpassen() {
@@ -367,6 +680,7 @@
     }
 
     flaeche.addEventListener('pointerdown', function (e) {
+        Ton.entsperren();
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         if (zeigerId !== null) return;
         zeigerId = e.pointerId;
@@ -463,6 +777,8 @@
             var g = GERAETE[sp.stufe];
             meldung('Neue Ausrüstung: ' + g.name + ' – Tank wieder voll!', 3.5);
             reglerAnzeigen();
+            Ton.upgradeGekauft(sp.stufe);
+            upgradeWarBereit = Modell.upgradeMoeglich(sp);
         }
         upgradeEl.blur();
     });
@@ -474,6 +790,7 @@
     });
 
     overlayStartEl.addEventListener('click', function () {
+        Ton.entsperren();
         if (phase === 'pause') {
             pauseUmschalten();
         } else {
@@ -491,7 +808,9 @@
         zeigerId = null;
         phase = 'laeuft';
         overlayEl.hidden = true;
+        upgradeWarBereit = false;
         reglerAnzeigen();
+        Ton.start();
     }
 
     function pauseUmschalten() {
@@ -505,10 +824,12 @@
             overlayStartEl.textContent = 'Weiter';
             overlayEl.hidden = false;
             pauseEl.textContent = 'Weiter';
+            Ton.pause();
         } else if (phase === 'pause') {
             phase = 'laeuft';
             overlayEl.hidden = true;
             pauseEl.textContent = 'Pause';
+            Ton.weiter();
         }
     }
 
@@ -531,6 +852,7 @@
         overlayStartEl.textContent = 'Neuer Einsatz';
         overlayEl.hidden = false;
         pauseEl.textContent = 'Pause';
+        Ton.ende(neuerRekord);
     }
 
     function meldung(text, sekunden) {
@@ -638,10 +960,19 @@
                 dampf(ev.x, ev.y, 10, false);
                 spritzer(ev.x, ev.y, 8, 1);
                 schwebText(ev.x, ev.y - 40, '+' + ev.punkte);
+                Ton.geloescht(ev.brand.spitze);
             } else if (ev.typ === 'neu') {
                 meldung('Neuer Brand: ' + ev.brand.name + '!', 2.2);
+                Ton.neuerBrand();
             }
         });
+
+        // Sobald die nächste Ausrüstung bezahlbar wird, gibt es einmal einen Hinweiston.
+        var upgradeBereit = Modell.upgradeMoeglich(sp);
+        if (upgradeBereit && !upgradeWarBereit) Ton.upgradeBereit();
+        upgradeWarBereit = upgradeBereit;
+
+        Ton.update(sp, dt);
 
         sp.feuer.forEach(function (f) {
             if (f.hp > 55 && Math.random() < dt * (f.hp / 60)) {

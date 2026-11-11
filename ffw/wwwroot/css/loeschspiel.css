@@ -481,6 +481,16 @@ body {
         display: block;
     }
 
+    /* Anzeigen und die beiden Knöpfe (Pause, Ton) sollen in eine Zeile passen */
+    .anzeigen {
+        gap: 4px 12px;
+    }
+
+        .anzeigen .knopf-klein {
+            padding: 4px 9px;
+            font-size: 0.8rem;
+        }
+
     .buehne {
         width: 100%;
         border-radius: 0;
