@@ -18,8 +18,8 @@
     var GERAETE = [
         { kurz: 'Gartenschlauch', name: 'Gartenschlauch', literProMin: 25, rate: 10, reichweite: 520, tank: 60, zufluss: 3, dicke: 7, farbe: '#2f9e44', rohr: '#3d4650', kosten: 0 },
         { kurz: 'D-Rohr', name: 'D-Schlauch mit D-Strahlrohr', literProMin: 140, rate: 28, reichweite: 760, tank: 150, zufluss: 8, dicke: 11, farbe: '#e8b400', rohr: '#c61b21', kosten: 60 },
-        { kurz: 'C-Rohr', name: 'C-Schlauch mit C-Strahlrohr', literProMin: 600, rate: 55, reichweite: 1050, tank: 300, zufluss: 16, dicke: 15, farbe: '#d1242f', rohr: '#9c1117', kosten: 220 },
-        { kurz: 'B-Rohr', name: 'B-Schlauch mit B-Strahlrohr', literProMin: 2400, rate: 110, reichweite: 1450, tank: 600, zufluss: 32, dicke: 20, farbe: '#e6ebef', rohr: '#c61b21', kosten: 600 }
+        { kurz: 'C-Rohr', name: 'C-Schlauch mit C-Strahlrohr', literProMin: 235, rate: 55, reichweite: 1050, tank: 300, zufluss: 16, dicke: 15, farbe: '#d1242f', rohr: '#9c1117', kosten: 220 },
+        { kurz: 'B-Rohr', name: 'B-Schlauch mit B-Strahlrohr', literProMin: 400, rate: 110, reichweite: 1450, tank: 600, zufluss: 32, dicke: 20, farbe: '#e6ebef', rohr: '#c61b21', kosten: 600 }
     ];
 
     // Hier kann es brennen. Welche Stellen vorkommen, hängt von der Reichweite der Ausrüstung ab.
