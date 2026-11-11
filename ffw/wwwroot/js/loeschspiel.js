@@ -16,9 +16,9 @@
     // Die Ausrüstung. "rate" ist die Wassermenge bei 100 % in Spieleinheiten pro Sekunde,
     // "tank" der Wasservorrat, "zufluss" das, was pro Sekunde nachläuft.
     var GERAETE = [
-        { kurz: 'Gartenschlauch', name: 'Gartenschlauch', literProMin: 20, rate: 10, reichweite: 520, tank: 60, zufluss: 3, dicke: 7, farbe: '#2f9e44', rohr: '#3d4650', kosten: 0 },
-        { kurz: 'D-Rohr', name: 'D-Schlauch mit D-Strahlrohr', literProMin: 100, rate: 28, reichweite: 760, tank: 150, zufluss: 8, dicke: 11, farbe: '#e8b400', rohr: '#c61b21', kosten: 60 },
-        { kurz: 'C-Rohr', name: 'C-Schlauch mit C-Strahlrohr', literProMin: 200, rate: 55, reichweite: 1050, tank: 300, zufluss: 16, dicke: 15, farbe: '#d1242f', rohr: '#9c1117', kosten: 220 },
+        { kurz: 'Gartenschlauch', name: 'Gartenschlauch', literProMin: 25, rate: 10, reichweite: 520, tank: 60, zufluss: 3, dicke: 7, farbe: '#2f9e44', rohr: '#3d4650', kosten: 0 },
+        { kurz: 'D-Rohr', name: 'D-Schlauch mit D-Strahlrohr', literProMin: 140, rate: 28, reichweite: 760, tank: 150, zufluss: 8, dicke: 11, farbe: '#e8b400', rohr: '#c61b21', kosten: 60 },
+        { kurz: 'C-Rohr', name: 'C-Schlauch mit C-Strahlrohr', literProMin: 235, rate: 55, reichweite: 1050, tank: 300, zufluss: 16, dicke: 15, farbe: '#d1242f', rohr: '#9c1117', kosten: 220 },
         { kurz: 'B-Rohr', name: 'B-Schlauch mit B-Strahlrohr', literProMin: 400, rate: 110, reichweite: 1450, tank: 600, zufluss: 32, dicke: 20, farbe: '#e6ebef', rohr: '#c61b21', kosten: 600 }
     ];
 
@@ -405,7 +405,7 @@
     function reglerAnzeigen() {
         var g = GERAETE[sp.stufe];
         var prozent = Math.round(eingabe.fluss * 100);
-        reglerWertEl.textContent = prozent + ' % (ca. ' + Math.round(eingabe.fluss * g.literProMin) + ' l/min)';
+        reglerWertEl.textContent = prozent + ' % (ca. ' + literText(eingabe.fluss * g.literProMin) + ' l/min)';
         reglerEl.setAttribute('aria-valuetext', prozent + ' Prozent');
     }
 
@@ -890,6 +890,11 @@
     }
 
     // ---------- Anzeigen ----------
+    // Liter pro Minute lesbar: gerundet, mit Tausenderpunkt (2.400)
+    function literText(l) {
+        return Math.round(l).toLocaleString('de-DE');
+    }
+
     function setzeText(el, schluessel, wert) {
         if (hudCache[schluessel] !== wert) {
             hudCache[schluessel] = wert;
@@ -928,7 +933,7 @@
         schadenEl.classList.toggle('kritisch', sp.schaden > 66);
 
         setzeText(geraetEl, 'geraet', g.name);
-        setzeText(geraetDatenEl, 'geraetd', 'Nenndurchfluss ca. ' + g.literProMin + ' l/min · Tank ' + g.tank + ' · Zufluss ' + g.zufluss + '/s');
+        setzeText(geraetDatenEl, 'geraetd', 'Max. Durchfluss ' + literText(g.literProMin) + ' l/min');
 
         var n = Modell.naechstesGeraet(sp);
         if (n) {
