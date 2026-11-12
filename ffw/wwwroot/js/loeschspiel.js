@@ -13,14 +13,42 @@
     var MAX_HP = 320;                  // Größter möglicher Brand ("Vollbrand").
     var MAX_FEUER = 10;                // So viele Brände können gleichzeitig brennen.
 
-    // Die Ausrüstung. "rate" ist die Wassermenge bei 100 % in Spieleinheiten pro Sekunde,
-    // "tank" der Wasservorrat, "zufluss" das, was pro Sekunde nachläuft.
-    var GERAETE = [
-        { kurz: 'Gartenschlauch', name: 'Gartenschlauch', literProMin: 25, rate: 10, reichweite: 520, tank: 60, zufluss: 3, dicke: 7, farbe: '#2f9e44', rohr: '#3d4650', kosten: 0 },
-        { kurz: 'D-Rohr', name: 'D-Schlauch mit D-Strahlrohr', literProMin: 140, rate: 28, reichweite: 760, tank: 150, zufluss: 8, dicke: 11, farbe: '#e8b400', rohr: '#c61b21', kosten: 60 },
-        { kurz: 'C-Rohr', name: 'C-Schlauch mit C-Strahlrohr', literProMin: 235, rate: 55, reichweite: 1050, tank: 300, zufluss: 16, dicke: 15, farbe: '#d1242f', rohr: '#9c1117', kosten: 220 },
-        { kurz: 'B-Rohr', name: 'B-Schlauch mit B-Strahlrohr', literProMin: 400, rate: 110, reichweite: 1450, tank: 600, zufluss: 32, dicke: 20, farbe: '#e6ebef', rohr: '#c61b21', kosten: 600 }
+    // Die Ausrüstung besteht aus zwei Teilen, die getrennt aufgerüstet werden:
+    //  - Die Spritze bestimmt die Wassermenge. "rate" ist die Menge bei 100 % in Spieleinheiten pro Sekunde,
+    //    "tank" der Wasservorrat, "zufluss" das, was pro Sekunde nachläuft.
+    //  - Der Schlauch bestimmt die Reichweite und damit, welche Stellen man erreicht (und wo es brennen kann).
+    var SPRITZEN = [
+        { kurz: 'Gartenspritze', literProMin: 25, rate: 10, tank: 60, zufluss: 3, rohr: '#3d4650', kosten: 0 },
+        { kurz: 'D-Spritze', literProMin: 140, rate: 28, tank: 150, zufluss: 8, rohr: '#c61b21', kosten: 60 },
+        { kurz: 'C-Spritze', literProMin: 235, rate: 55, tank: 300, zufluss: 16, rohr: '#9c1117', kosten: 220 },
+        { kurz: 'B-Spritze', literProMin: 400, rate: 110, tank: 600, zufluss: 32, rohr: '#c61b21', kosten: 600 }
     ];
+
+    var SCHLAEUCHE = [
+        { kurz: 'Gartenschlauch', reichweite: 520, dicke: 7, farbe: '#2f9e44', kosten: 0 },
+        { kurz: 'D-Schlauch', reichweite: 760, dicke: 11, farbe: '#e8b400', kosten: 40 },
+        { kurz: 'C-Schlauch', reichweite: 1050, dicke: 15, farbe: '#d1242f', kosten: 150 },
+        { kurz: 'B-Schlauch', reichweite: 1450, dicke: 20, farbe: '#e6ebef', kosten: 400 }
+    ];
+
+    var AUSBAU = { spritze: SPRITZEN, schlauch: SCHLAEUCHE };
+
+    // Die aktuelle Ausrüstung als ein Objekt: Wassermenge, Tank und Zufluss von der Spritze, Reichweite und Aussehen vom Schlauch.
+    var geraetCache = {};
+    function geraet(sp) {
+        var schluessel = sp.spritze + '/' + sp.schlauch;
+        var g = geraetCache[schluessel];
+        if (!g) {
+            var sa = SPRITZEN[sp.spritze], sl = SCHLAEUCHE[sp.schlauch];
+            g = geraetCache[schluessel] = {
+                kurz: sa.kurz + ' + ' + sl.kurz,
+                spritze: sa.kurz, schlauch: sl.kurz,
+                literProMin: sa.literProMin, rate: sa.rate, tank: sa.tank, zufluss: sa.zufluss, rohr: sa.rohr,
+                reichweite: sl.reichweite, dicke: sl.dicke, farbe: sl.farbe
+            };
+        }
+        return g;
+    }
 
     // Hier kann es brennen. Welche Stellen vorkommen, hängt von der Reichweite der Ausrüstung ab.
     var BRANDSTELLEN = [
@@ -113,8 +141,9 @@
             punkte: 0,
             gesamt: 0,
             geloescht: 0,
-            stufe: 0,
-            tank: GERAETE[0].tank,
+            spritze: 0,
+            schlauch: 0,
+            tank: SPRITZEN[0].tank,
             schaden: 0,
             feuer: [],
             naechsterBrand: 1.5,
@@ -126,7 +155,7 @@
     }
 
     function stellenInReichweite(sp, mitte, maxAbstand, minAbstand) {
-        var g = GERAETE[sp.stufe];
+        var g = geraet(sp);
         return BRANDSTELLEN.filter(function (s) {
             if (abstand(DUESE.x, DUESE.y, s.x, s.y) > g.reichweite * 0.97) return false;
             if (mitte && abstand(mitte.x, mitte.y, s.x, s.y) > maxAbstand) return false;
@@ -142,12 +171,11 @@
     }
 
     function neuerBrand(sp) {
-        var g = GERAETE[sp.stufe];
-        var vorher = sp.stufe > 0 ? GERAETE[sp.stufe - 1].reichweite : 0;
+        var vorher = sp.schlauch > 0 ? SCHLAEUCHE[sp.schlauch - 1].reichweite : 0;
         var frei = stellenInReichweite(sp);
         if (!frei.length) return;
 
-        // Stellen, die erst mit der neuen Ausrüstung erreichbar sind, kommen öfter vor, damit sich das Upgrade lohnt.
+        // Stellen, die erst mit dem größeren Schlauch erreichbar sind, kommen öfter vor, damit sich das Upgrade lohnt.
         var gewichtet = [];
         frei.forEach(function (s) {
             var gewicht = abstand(DUESE.x, DUESE.y, s.x, s.y) > vorher * 0.97 ? 3 : 1;
@@ -176,7 +204,7 @@
         if (sp.vorbei) return;
         sp.ereignisse = [];
         sp.zeit += dt;
-        var g = GERAETE[sp.stufe];
+        var g = geraet(sp);
 
         // Neue Brände
         sp.naechsterBrand -= dt;
@@ -265,29 +293,32 @@
         }
     }
 
-    function naechstesGeraet(sp) {
-        return GERAETE[sp.stufe + 1] || null;
+    // "art" ist 'spritze' oder 'schlauch'. Ohne Angabe gilt: Ist irgendein Upgrade bezahlbar?
+    function naechstes(sp, art) {
+        return AUSBAU[art][sp[art] + 1] || null;
     }
 
-    function upgradeMoeglich(sp) {
-        var n = naechstesGeraet(sp);
+    function upgradeMoeglich(sp, art) {
+        if (!art) return upgradeMoeglich(sp, 'spritze') || upgradeMoeglich(sp, 'schlauch');
+        var n = naechstes(sp, art);
         return !!n && sp.punkte >= n.kosten;
     }
 
-    function upgraden(sp) {
-        if (!upgradeMoeglich(sp)) return false;
-        var n = naechstesGeraet(sp);
+    function upgraden(sp, art) {
+        if (!upgradeMoeglich(sp, art)) return false;
+        var n = naechstes(sp, art);
         sp.punkte -= n.kosten;
-        sp.stufe++;
-        sp.tank = n.tank;
+        sp[art]++;
+        // Eine größere Spritze kommt mit vollem Tank. Ein größerer Schlauch ändert am Wasservorrat nichts.
+        if (art === 'spritze') sp.tank = n.tank;
         return true;
     }
 
     var Modell = {
-        WELT: WELT, DUESE: DUESE, MAX_HP: MAX_HP, MAX_FEUER: MAX_FEUER, GERAETE: GERAETE, BRANDSTELLEN: BRANDSTELLEN,
+        WELT: WELT, DUESE: DUESE, MAX_HP: MAX_HP, MAX_FEUER: MAX_FEUER, SPRITZEN: SPRITZEN, SCHLAEUCHE: SCHLAEUCHE, BRANDSTELLEN: BRANDSTELLEN,
         abstand: abstand, zielhilfe: zielhilfe, reichweite: reichweite, mindestrate: mindestrate, wirkrate: wirkrate, wachstum: wachstum, radius: radius,
         groesse: groesse, loeschwirkung: loeschwirkung, intervall: intervall,
-        neuesSpiel: neuesSpiel, schritt: schritt, naechstesGeraet: naechstesGeraet, upgradeMoeglich: upgradeMoeglich, upgraden: upgraden
+        neuesSpiel: neuesSpiel, schritt: schritt, geraet: geraet, naechstes: naechstes, upgradeMoeglich: upgradeMoeglich, upgraden: upgraden
     };
 
     // Außerhalb des Browsers (Node) wird nur das Modell bereitgestellt.
@@ -309,8 +340,12 @@
     var punkteEl = $('punkte'), zeitEl = $('zeit'), rekordEl = $('rekord');
     var tankEl = $('tank-fuellung'), tankTextEl = $('tank-text');
     var schadenEl = $('schaden-fuellung'), schadenTextEl = $('schaden-text');
-    var geraetEl = $('geraet-name'), geraetDatenEl = $('geraet-daten');
-    var upgradeEl = $('btn-upgrade'), pauseEl = $('btn-pause'), hilfeEl = $('hilfe-an');
+    // Zwei getrennte Ausbau-Reihen: Die Spritze bringt mehr Wasser, der Schlauch mehr Reichweite.
+    var ausbauEl = {
+        spritze: { name: $('spritze-name'), daten: $('spritze-daten'), knopf: $('btn-upgrade-spritze') },
+        schlauch: { name: $('schlauch-name'), daten: $('schlauch-daten'), knopf: $('btn-upgrade-schlauch') }
+    };
+    var pauseEl = $('btn-pause'), hilfeEl = $('hilfe-an');
     var hinweisEl = $('hinweis');
     var overlayEl = $('overlay'), overlayTitelEl = $('overlay-titel'), overlayTextEl = $('overlay-text'), overlayStartEl = $('overlay-start');
 
@@ -512,14 +547,15 @@
             // Wird in jedem Spielschritt aufgerufen und führt die Dauergeräusche nach.
             update: function (sp, dt) {
                 if (!bereit()) return;
-                var t = ac.currentTime, s = sp.strahl, stufe = sp.stufe;
+                var t = ac.currentTime, s = sp.strahl, g = Modell.geraet(sp);
 
-                // Wasserstrahl: lauter und tiefer bei mehr Wasser und größerem Rohr. Bei leerem Vorrat stottert er.
+                // Wasserstrahl: lauter bei mehr Wasser und größerer Spritze, tiefer bei dickerem Schlauch.
+                // Bei leerem Vorrat stottert er.
                 var strahlLaut = 0, strahlFreq = 1800, strahlZeit = 0.04, zischLaut = 0;
                 if (s && s.aktiv) {
                     var f = Math.sqrt(s.fluss);
-                    strahlLaut = (0.07 + 0.2 * f) * (0.85 + 0.15 * stufe);
-                    strahlFreq = (2600 - 330 * stufe) * (0.5 + 0.5 * f);
+                    strahlLaut = (0.07 + 0.2 * f) * (0.85 + 0.15 * sp.spritze);
+                    strahlFreq = (2600 - 330 * sp.schlauch) * (0.5 + 0.5 * f);
                     if (s.leer) { strahlLaut *= Math.random() < 0.5 ? 0.45 : 0.05; strahlZeit = 0.015; }
                     if (s.treffer) zischLaut = (s.verdampft ? 0.12 : 0.07) * (0.5 + 0.5 * Math.min(1, s.treffer.hp / 120));
                 }
@@ -541,7 +577,7 @@
                 }
 
                 // Wasser fast leer: leises Piepen, solange gespritzt wird.
-                if (s && s.aktiv && sp.tank < 0.15 * GERAETE[stufe].tank) {
+                if (s && s.aktiv && sp.tank < 0.15 * g.tank) {
                     pieps.tank -= dt;
                     if (pieps.tank <= 0) { ton(740, t, 0.07, 'square', 0.035); pieps.tank = 0.45; }
                 } else {
@@ -580,9 +616,10 @@
                 ton(1568, t + 0.13, 0.5, 'sine', 0.08);
             },
 
-            upgradeGekauft: function (stufe) {
+            // "art" ist 'spritze' oder 'schlauch'. Der Schlauch klingt etwas tiefer, damit man beide unterscheiden kann.
+            upgradeGekauft: function (stufe, art) {
                 if (!bereit()) return;
-                var t = ac.currentTime, grund = 523 * Math.pow(1.12, Math.max(0, stufe - 1));
+                var t = ac.currentTime, grund = 523 * Math.pow(1.12, Math.max(0, stufe - 1)) * (art === 'schlauch' ? 0.8 : 1);
                 stoss(t, 0.55, 'bandpass', 300, 1800, 0.2, 1.2);
                 folge([grund, grund * 1.26, grund * 1.5, grund * 2], t + 0.1, 0.09, 'triangle', 0.12, 0.35);
             },
@@ -718,7 +755,7 @@
     }
 
     function reglerAnzeigen() {
-        var g = GERAETE[sp.stufe];
+        var g = Modell.geraet(sp);
         var prozent = Math.round(eingabe.fluss * 100);
         reglerWertEl.textContent = prozent + ' % (ca. ' + literText(eingabe.fluss * g.literProMin) + ' l/min)';
         reglerEl.setAttribute('aria-valuetext', prozent + ' Prozent');
@@ -772,17 +809,22 @@
         if (phase === 'laeuft' || phase === 'pause') pauseUmschalten();
     });
 
-    upgradeEl.addEventListener('click', function () {
+    function aufruesten(art) {
         if (phase !== 'laeuft' && phase !== 'pause') return;
-        if (Modell.upgraden(sp)) {
-            var g = GERAETE[sp.stufe];
-            meldung('Neue Ausrüstung: ' + g.name + ' – Tank wieder voll!', 3.5);
+        if (Modell.upgraden(sp, art)) {
+            var g = Modell.geraet(sp);
+            meldung(art === 'spritze'
+                ? 'Neue Spritze: ' + g.spritze + ' – mehr Wasser, Tank wieder voll!'
+                : 'Neuer Schlauch: ' + g.schlauch + ' – mehr Reichweite!', 3.5);
             reglerAnzeigen();
-            Ton.upgradeGekauft(sp.stufe);
+            Ton.upgradeGekauft(sp[art], art);
             upgradeWarBereit = Modell.upgradeMoeglich(sp);
         }
-        upgradeEl.blur();
-    });
+        ausbauEl[art].knopf.blur();
+    }
+
+    ausbauEl.spritze.knopf.addEventListener('click', function () { aufruesten('spritze'); });
+    ausbauEl.schlauch.knopf.addEventListener('click', function () { aufruesten('schlauch'); });
 
     hilfeEl.checked = zeigeHilfe;
     hilfeEl.addEventListener('change', function () {
@@ -863,7 +905,7 @@
 
     // ---------- Teilchen ----------
     function neuerTropfen(s) {
-        var g = GERAETE[sp.stufe];
+        var g = Modell.geraet(sp);
         var dist = abstand(DUESE.x, DUESE.y, s.landeX, s.landeY);
         var winkel = Math.atan2(s.landeY - DUESE.y, s.landeX - DUESE.x);
         var versatz = (Math.random() - 0.5) * (4 + 16 * s.fluss);
@@ -1037,7 +1079,7 @@
     }
 
     function beschriftungZeichnen(f) {
-        var g = GERAETE[sp.stufe];
+        var g = Modell.geraet(sp);
         var m = Modell.mindestrate(f.hp);
         var text, farbe;
         if (m >= g.rate * 0.98) {
@@ -1069,7 +1111,7 @@
     }
 
     function schlauchZeichnen(winkel) {
-        var g = GERAETE[sp.stufe];
+        var g = Modell.geraet(sp);
         var sx = DUESE.x - 300, sy = WELT.h + 50;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
@@ -1098,7 +1140,7 @@
     }
 
     function reichweiteZeichnen() {
-        var g = GERAETE[sp.stufe];
+        var g = Modell.geraet(sp);
         var weite = Modell.reichweite(g, eingabe.fluss);
         ctx.save();
         ctx.setLineDash([16, 14]);
@@ -1119,7 +1161,7 @@
 
     function zielkreuzZeichnen() {
         if (!zeigerDa && !zeigerDruck) return;
-        var g = GERAETE[sp.stufe];
+        var g = Modell.geraet(sp);
         var weite = Modell.reichweite(g, eingabe.fluss);
         var z = zielpunkt();
         var d = abstand(DUESE.x, DUESE.y, z.x, z.y);
@@ -1143,7 +1185,7 @@
     function teilchenZeichnen() {
         var s = sp.strahl;
         if (s && s.aktiv) {
-            var g = GERAETE[sp.stufe];
+            var g = Modell.geraet(sp);
             var dist = abstand(DUESE.x, DUESE.y, s.landeX, s.landeY);
             ctx.save();
             ctx.lineCap = 'round';
@@ -1234,6 +1276,15 @@
         }
     }
 
+    // Titel (Tooltip) und Beschreibung für Screenreader, die den sichtbaren Text des Knopfs ersetzt.
+    function setzeBeschreibung(el, schluessel, wert) {
+        if (hudCache[schluessel] !== wert) {
+            hudCache[schluessel] = wert;
+            el.title = wert;
+            el.setAttribute('aria-label', wert);
+        }
+    }
+
     function setzeBreite(el, schluessel, prozent) {
         var w = Math.round(prozent * 10) / 10 + '%';
         if (hudCache[schluessel] !== w) {
@@ -1250,7 +1301,7 @@
     }
 
     function anzeigenAktualisieren() {
-        var g = GERAETE[sp.stufe];
+        var g = Modell.geraet(sp);
         setzeText(punkteEl, 'punkte', String(sp.punkte));
         setzeText(zeitEl, 'zeit', zeitText(sp.zeit));
         setzeText(rekordEl, 'rekord', String(Math.max(rekord, sp.gesamt)));
@@ -1264,19 +1315,27 @@
         setzeText(schadenTextEl, 'schadent', Math.round(sp.schaden) + ' %');
         schadenEl.classList.toggle('kritisch', sp.schaden > 66);
 
-        setzeText(geraetEl, 'geraet', g.name);
-        setzeText(geraetDatenEl, 'geraetd', 'Max. Durchfluss ' + literText(g.literProMin) + ' l/min');
-
-        var n = Modell.naechstesGeraet(sp);
-        if (n) {
-            setzeText(upgradeEl, 'upgrade', 'Aufrüsten: ' + n.kurz + ' (' + n.kosten + ' Punkte)');
-            upgradeEl.disabled = !Modell.upgradeMoeglich(sp);
-            upgradeEl.classList.toggle('bereit', !upgradeEl.disabled);
-        } else {
-            setzeText(upgradeEl, 'upgrade', 'Höchste Ausbaustufe erreicht');
-            upgradeEl.disabled = true;
-            upgradeEl.classList.remove('bereit');
-        }
+        // Ausrüstung: je Reihe der aktuelle Stand und ein Knopf für die nächste Stufe
+        ['spritze', 'schlauch'].forEach(function (art) {
+            var e = ausbauEl[art];
+            var reihe = art === 'spritze' ? Modell.SPRITZEN : Modell.SCHLAEUCHE;
+            var aktuell = reihe[sp[art]], n = Modell.naechstes(sp, art);
+            setzeText(e.name, art + '-name', aktuell.kurz);
+            setzeText(e.daten, art + '-daten', art === 'spritze'
+                ? 'max. ' + literText(aktuell.literProMin) + ' l/min'
+                : 'Reichweite: Stufe ' + (sp.schlauch + 1) + ' von ' + reihe.length);
+            if (n) {
+                setzeText(e.knopf, art + '-knopf', '▲ ' + n.kurz + ' (' + n.kosten + ')');
+                setzeBeschreibung(e.knopf, art + '-beschr', 'Aufrüsten auf ' + n.kurz + ' für ' + n.kosten + ' Punkte');
+                e.knopf.disabled = !Modell.upgradeMoeglich(sp, art);
+                e.knopf.classList.toggle('bereit', !e.knopf.disabled);
+            } else {
+                setzeText(e.knopf, art + '-knopf', 'Höchste Stufe');
+                setzeBeschreibung(e.knopf, art + '-beschr', 'Höchste Ausbaustufe erreicht');
+                e.knopf.disabled = true;
+                e.knopf.classList.remove('bereit');
+            }
+        });
 
         var h = hinweisBestimmen();
         if (hudCache.hinweis !== h) {

@@ -51,7 +51,7 @@
                             <li><strong>Wassermenge:</strong> mit dem Regler, dem Mausrad oder den Tasten W/S bzw. Pfeil hoch/runter einstellen.</li>
                             <li><strong>Zu wenig Wasser:</strong> Der Strahl reicht nicht bis zum Brand, oder das Wasser verdampft, ohne zu löschen.</li>
                             <li><strong>Zu viel Wasser:</strong> Der Vorrat ist schnell leer, danach kommt nur noch ein Rinnsal.</li>
-                            <li><strong>Punkte</strong> für gelöschte Brände bringen dir bessere Ausrüstung: vom Gartenschlauch zum D-, C- und schließlich B-Rohr.</li>
+                            <li><strong>Punkte</strong> für gelöschte Brände bringen dir bessere Ausrüstung. Eine größere <strong>Spritze</strong> (D, C, B) liefert mehr Wasser, ein größerer <strong>Schlauch</strong> (D, C, B) erhöht die Reichweite.</li>
                         </ul>
                     </div>
                     <button type="button" id="overlay-start" class="knopf knopf-gross">Einsatz starten</button>
@@ -79,9 +79,16 @@
             </div>
 
             <div class="feld ausruestung">
-                <div class="geraet-name" id="geraet-name">Gartenschlauch</div>
-                <div class="geraet-daten" id="geraet-daten"></div>
-                <button type="button" id="btn-upgrade" class="knopf" disabled>Aufrüsten</button>
+                <div class="ausbau">
+                    <div class="ausbau-name"><span class="ausbau-art">Spritze</span> <strong id="spritze-name">Gartenspritze</strong></div>
+                    <div class="ausbau-daten" id="spritze-daten"></div>
+                    <button type="button" id="btn-upgrade-spritze" class="knopf" disabled>Aufrüsten</button>
+                </div>
+                <div class="ausbau">
+                    <div class="ausbau-name"><span class="ausbau-art">Schlauch</span> <strong id="schlauch-name">Gartenschlauch</strong></div>
+                    <div class="ausbau-daten" id="schlauch-daten"></div>
+                    <button type="button" id="btn-upgrade-schlauch" class="knopf" disabled>Aufrüsten</button>
+                </div>
                 <label class="hilfe"><input type="checkbox" id="hilfe-an" checked /> Hinweise an den Bränden</label>
             </div>
         </section>
