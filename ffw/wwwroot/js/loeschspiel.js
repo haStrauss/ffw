@@ -325,6 +325,7 @@
     var tropfenZaehler = 0;
     var meldungText = '', meldungBis = 0;
     var dpr = 1, sk = 1, schriftKlein = 12, schriftGross = 22;
+    var dprMax = 2;                        // höchste Zeichenauflösung; wird gesenkt, wenn das Gerät zu langsam ist
     var rekord = ladeRekord();
     var zeigeHilfe = ladeHilfe();
     var hudCache = {};
@@ -656,7 +657,7 @@
     // ---------- Größe ----------
     function groesseAnpassen() {
         var rect = buehneEl.getBoundingClientRect();
-        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        dpr = Math.min(window.devicePixelRatio || 1, dprMax);
         flaeche.width = Math.max(1, Math.round(rect.width * dpr));
         flaeche.height = Math.max(1, Math.round(rect.width * dpr * WELT.h / WELT.b));
         sk = flaeche.width / WELT.b;
@@ -1287,13 +1288,38 @@
 
     // ---------- Hauptschleife ----------
     var letzteZeit = 0;
+    var langsameBilder = 0;
+
+    // Schwache Geräte: Läuft das Spiel dauerhaft unter etwa 25 Bildern pro Sekunde, wird die Zeichenauflösung
+    // schrittweise gesenkt (2, 1,5, 1). Das Bild wird etwas weicher, dafür bleibt das Spiel flüssig.
+    function bildrateKontrollieren(ms) {
+        if (phase !== 'laeuft' || ms > 1000) { langsameBilder = 0; return; }
+        langsameBilder = ms > 40 ? langsameBilder + 1 : Math.max(0, langsameBilder - 1);
+        if (langsameBilder > 40 && dprMax > 1) {
+            dprMax = Math.max(1, dprMax - 0.5);
+            langsameBilder = 0;
+            groesseAnpassen();
+        }
+    }
+
     function schleife(ts) {
-        var dt = Math.min(0.05, (ts - letzteZeit) / 1000 || 0);
+        var ms = ts - letzteZeit;
+        // Der Zeitschritt ist auf 0,1 s begrenzt. Bis herunter zu 10 Bildern pro Sekunde läuft das Spiel so in Echtzeit,
+        // erst darunter (oder nach einem Tab-Wechsel) wird es langsamer statt zu springen.
+        var dt = Math.min(0.1, ms / 1000 || 0);
         letzteZeit = ts;
+        bildrateKontrollieren(ms);
         if (phase === 'laeuft') aktualisieren(dt);
         zeichnen(ts / 1000);
         anzeigenAktualisieren();
         requestAnimationFrame(schleife);
+    }
+
+    // Auf Touchgeräten hält der Finger das Strahlrohr, der Regler ist nur mit der zweiten Hand erreichbar. Damit der Strahl
+    // dort von Anfang an wirkt, startet die Wassermenge mit voller Menge (am PC bei der Hälfte, dort geht es per Mausrad).
+    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+        eingabe.fluss = 1;
+        reglerEl.value = '100';
     }
 
     reglerAnzeigen();
