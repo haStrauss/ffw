@@ -396,25 +396,33 @@ body {
     }
 }
 
-/* Ausrüstung: Name und Daten links, Aufrüsten-Knopf rechts */
+/* Ausrüstung: zwei Zeilen, Spritze (Wassermenge) und Schlauch (Reichweite). Links Name und Daten, rechts der Knopf für die nächste Stufe. */
 .ausruestung {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 12.5rem);
-    grid-template-areas: "name knopf" "daten knopf" "hilfe hilfe";
-    align-items: center;
-    gap: 1px 10px;
+    gap: 5px;
 }
 
-.geraet-name {
+.ausbau {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 10.5rem);
+    grid-template-areas: "name knopf" "daten knopf";
+    align-items: center;
+    gap: 0 10px;
+}
+
+.ausbau-name {
     grid-area: name;
     overflow: hidden;
-    font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
 
-.geraet-daten {
+.ausbau-art {
+    color: var(--muted);
+    font-size: 0.74rem;
+}
+
+.ausbau-daten {
     grid-area: daten;
     overflow: hidden;
     font-size: 0.7rem;
@@ -423,20 +431,18 @@ body {
     text-overflow: ellipsis;
 }
 
-.ausruestung .knopf {
+.ausbau .knopf {
     grid-area: knopf;
     width: 100%;
-    padding: 5px 10px;
+    padding: 5px 8px;
     font-size: 0.8rem;
     line-height: 1.2;
 }
 
 .hilfe {
-    grid-area: hilfe;
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-top: 2px;
     font-size: 0.75rem;
     color: var(--muted);
     cursor: pointer;
@@ -587,15 +593,19 @@ body {
         padding: 5px 8px;
     }
 
-    .geraet-daten,
+    .ausbau-daten,
     .hilfe {
         display: none;
     }
 
     .ausruestung {
+        gap: 4px;
+    }
+
+    .ausbau {
         grid-template-areas: "name" "knopf";
         grid-template-columns: minmax(0, 1fr);
-        gap: 3px;
+        gap: 2px;
     }
 
     .balken {
