@@ -780,13 +780,15 @@
         } else if ((e.key === 'p' || e.key === 'P' || e.key === 'Escape') && (phase === 'laeuft' || phase === 'pause')) {
             e.preventDefault();
             pauseUmschalten();
-        } else if (phase === 'laeuft' && e.target !== reglerEl) {
-            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === '+') {
+        } else if (phase === 'laeuft' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            // Pfeiltasten (hoch/rechts mehr, runter/links weniger), auch bei fokussiertem Regler: 5 %, mit Umschalttaste 1 %.
+            var schritt = e.shiftKey ? 1 : 5;
+            if (e.key === 'ArrowUp' || e.key === 'ArrowRight' || e.key === 'w' || e.key === 'W' || e.key === '+') {
                 e.preventDefault();
-                flussSetzen(eingabe.fluss * 100 + 5);
-            } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S' || e.key === '-') {
+                flussSetzen(eingabe.fluss * 100 + schritt);
+            } else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 's' || e.key === 'S' || e.key === '-') {
                 e.preventDefault();
-                flussSetzen(eingabe.fluss * 100 - 5);
+                flussSetzen(eingabe.fluss * 100 - schritt);
             }
         }
     });
