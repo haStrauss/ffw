@@ -834,8 +834,172 @@
         try { localStorage.setItem(HILFE_SCHLUESSEL, zeigeHilfe ? '1' : '0'); } catch (e) { }
     });
 
+    // ---------- Bestenliste (Top 10) ----------
+    // Der Server prüft die Ergebnisse (siehe LoeschspielBestenliste.cs). Ist er nicht erreichbar, läuft das Spiel trotzdem normal.
+    var NAME_SCHLUESSEL = 'loeschspiel.name';
+    var appEl = document.querySelector('.app');
+    var API = (appEl && appEl.getAttribute('data-api')) || '/loeschspiel/api';
+    var bestenEl = {
+        form: $('eintrag'), platz: $('eintrag-platz'), name: $('eintrag-name'), senden: $('eintrag-senden'), fehler: $('eintrag-fehler'),
+        box: $('bestenliste'), meldung: $('bestenliste-meldung'), liste: $('bestenliste-liste'), knopf: $('btn-bestenliste')
+    };
+    var spielMarke = null;                 // Marke des laufenden Einsatzes (vom Server), nur damit lässt sich ein Ergebnis eintragen
+    var listeOffen = false;                // Bestenliste statt Text im Overlay sichtbar
+    var eintragOffen = false;              // Das Ergebnis ist gut genug für die Top 10, der Name darf eingetragen werden
+    var titelVorListe = '';
+
+    // Immer ein Ergebnis, nie eine Ausnahme: { ok, status, daten } (status 0 = Server nicht erreichbar).
+    function api(methode, pfad, daten) {
+        if (typeof fetch !== 'function') return Promise.resolve({ ok: false, status: 0, daten: null });
+        var optionen = { method: methode, headers: {}, cache: 'no-store' };
+        if (daten) {
+            optionen.headers['Content-Type'] = 'application/json';
+            optionen.body = JSON.stringify(daten);
+        }
+        return fetch(API + pfad, optionen).then(function (antwort) {
+            return antwort.json().then(function (d) { return d; }, function () { return null; }).then(function (d) {
+                return { ok: antwort.ok, status: antwort.status, daten: d };
+            });
+        }, function () { return { ok: false, status: 0, daten: null }; });
+    }
+
+    function ladeName() {
+        try { return localStorage.getItem(NAME_SCHLUESSEL) || ''; } catch (e) { return ''; }
+    }
+
+    function speichereName(name) {
+        try { localStorage.setItem(NAME_SCHLUESSEL, name); } catch (e) { }
+    }
+
+    function bestenlisteAnzeigen(eintraege, hervorgehobenerPlatz) {
+        bestenEl.liste.textContent = '';
+        eintraege.forEach(function (eintrag) {
+            var zeile = document.createElement('li');
+            if (hervorgehobenerPlatz && eintrag.platz === hervorgehobenerPlatz) zeile.className = 'ich';
+            [['platz', eintrag.platz + '.'], ['name', eintrag.name], ['punkte', String(eintrag.punkte)], ['dauer', zeitText(eintrag.sekunden)]]
+                .forEach(function (feld) {
+                    var span = document.createElement('span');
+                    span.className = feld[0];
+                    span.textContent = feld[1];     // textContent: Namen werden nie als HTML gedeutet
+                    zeile.appendChild(span);
+                });
+            bestenEl.liste.appendChild(zeile);
+        });
+        bestenEl.meldung.hidden = eintraege.length > 0;
+        if (!eintraege.length) bestenEl.meldung.textContent = 'Noch keine Einträge – sei der Erste!';
+    }
+
+    function bestenlisteLaden() {
+        bestenEl.liste.textContent = '';
+        bestenEl.meldung.hidden = false;
+        bestenEl.meldung.textContent = 'Wird geladen …';
+        api('GET', '/bestenliste').then(function (r) {
+            if (!listeOffen) return;
+            if (r.ok && r.daten && r.daten.eintraege) {
+                bestenlisteAnzeigen(r.daten.eintraege, 0);
+            } else {
+                bestenEl.meldung.hidden = false;
+                bestenEl.meldung.textContent = 'Die Bestenliste ist gerade nicht erreichbar.';
+            }
+        });
+    }
+
+    // Zeigt die Bestenliste im Overlay. Mit "eintraege" (nach dem Eintragen) sofort, sonst erst nach dem Laden.
+    function listeOeffnen(eintraege, hervorgehobenerPlatz) {
+        if (!listeOffen) titelVorListe = overlayTitelEl.textContent;
+        listeOffen = true;
+        overlayTitelEl.textContent = 'Bestenliste – Top 10';
+        overlayTextEl.hidden = true;
+        bestenEl.form.hidden = true;
+        bestenEl.box.hidden = false;
+        bestenEl.knopf.textContent = 'Zurück';
+        if (eintraege) bestenlisteAnzeigen(eintraege, hervorgehobenerPlatz); else bestenlisteLaden();
+    }
+
+    // Normale Ansicht des Overlays. Den Titel setzt der Aufrufer selbst (Start, Pause und Ende haben je einen eigenen).
+    function ansichtZuruecksetzen() {
+        listeOffen = false;
+        overlayTextEl.hidden = false;
+        bestenEl.box.hidden = true;
+        bestenEl.form.hidden = !eintragOffen;
+        bestenEl.knopf.textContent = 'Bestenliste ansehen';
+    }
+
+    bestenEl.knopf.addEventListener('click', function () {
+        if (listeOffen) {
+            overlayTitelEl.textContent = titelVorListe;
+            ansichtZuruecksetzen();
+        } else {
+            listeOeffnen(null, 0);
+        }
+    });
+
+    // Neuer Einsatz: Marke beim Server holen und den Eintrag vom letzten Einsatz verwerfen.
+    function bestenlisteNeuerEinsatz() {
+        var dieses = sp;
+        spielMarke = null;
+        eintragOffen = false;
+        bestenEl.form.hidden = true;
+        bestenEl.fehler.hidden = true;
+        api('POST', '/start').then(function (r) {
+            if (sp === dieses && r.ok && r.daten && r.daten.marke) spielMarke = r.daten.marke;
+        });
+    }
+
+    // Einsatz beendet: Reicht es für die Top 10? Dann erscheint die Namenseingabe.
+    function bestenlisteEinsatzEnde() {
+        var dieses = sp;
+        if (!spielMarke || sp.gesamt <= 0 || sp.zeit < 10) return;
+        api('GET', '/platz?punkte=' + sp.gesamt).then(function (r) {
+            if (sp !== dieses || phase !== 'ende' || !r.ok || !r.daten || !r.daten.platz) return;
+            eintragOffen = true;
+            bestenEl.platz.textContent = String(r.daten.platz);
+            bestenEl.name.value = ladeName();
+            bestenEl.senden.disabled = false;
+            bestenEl.fehler.hidden = true;
+            bestenEl.form.hidden = listeOffen;
+            // Am Smartphone würde die Tastatur sofort das halbe Bild verdecken, deshalb nur mit Maus.
+            if (!listeOffen && window.matchMedia && window.matchMedia('(pointer: fine)').matches) {
+                bestenEl.name.focus();
+                bestenEl.name.select();
+            }
+        });
+    }
+
+    function eintragFehler(text) {
+        bestenEl.fehler.textContent = text;
+        bestenEl.fehler.hidden = false;
+    }
+
+    bestenEl.form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (phase !== 'ende' || !eintragOffen) return;
+        var name = bestenEl.name.value.replace(/\s+/g, ' ').trim();
+        if (name.length < 2) {
+            eintragFehler('Bitte mindestens 2 Zeichen eingeben.');
+            return;
+        }
+        var dieses = sp;
+        bestenEl.senden.disabled = true;
+        bestenEl.fehler.hidden = true;
+        api('POST', '/ergebnis', { marke: spielMarke, name: name, punkte: sp.gesamt, sekunden: Math.floor(sp.zeit) }).then(function (r) {
+            if (sp !== dieses) return;
+            if (r.ok && r.daten && r.daten.eintraege) {
+                speichereName(name);
+                eintragOffen = false;
+                spielMarke = null;
+                listeOeffnen(r.daten.eintraege, r.daten.platz);
+                return;
+            }
+            eintragFehler((r.daten && r.daten.fehler) || 'Keine Verbindung zum Server. Bitte versuche es noch einmal.');
+            // 409: schon eingetragen oder nicht mehr unter den Top 10 – ein neuer Versuch würde nichts ändern.
+            bestenEl.senden.disabled = r.status === 409;
+        });
+    });
+
     overlayStartEl.addEventListener('click', function () {
         Ton.entsperren();
+        ansichtZuruecksetzen();
         if (phase === 'pause') {
             pauseUmschalten();
         } else {
@@ -845,6 +1009,7 @@
 
     function neuesSpielStarten() {
         sp = Modell.neuesSpiel();
+        bestenlisteNeuerEinsatz();
         teilchen = [];
         tropfenZaehler = 0;
         meldungText = '';
@@ -859,6 +1024,7 @@
     }
 
     function pauseUmschalten() {
+        ansichtZuruecksetzen();
         if (phase === 'laeuft') {
             phase = 'pause';
             tasteDruck = false;
@@ -885,6 +1051,7 @@
             rekord = sp.gesamt;
             speichereRekord();
         }
+        ansichtZuruecksetzen();
         overlayTitelEl.textContent = 'Einsatz beendet';
         overlayTextEl.innerHTML =
             '<p>Das Gebäude ist zu stark beschädigt. Das nächste Mal klappt es noch besser!</p>' +
@@ -898,6 +1065,7 @@
         overlayEl.hidden = false;
         pauseEl.textContent = 'Pause';
         Ton.ende(neuerRekord);
+        bestenlisteEinsatzEnde();
     }
 
     function meldung(text, sekunden) {

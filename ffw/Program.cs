@@ -15,6 +15,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddSingleton<FotoSpeicher>();
 builder.Services.AddSingleton<DokumentSpeicher>();
+builder.Services.AddScoped<LoeschspielBestenliste>();
 
 // Anmeldung per E-Mail und Passwort. Es gibt bewusst keine Registrierung:
 // Benutzer werden nur über Admin:Email / Admin:Password angelegt (siehe DatenbankInitialisierer).
@@ -101,6 +102,9 @@ app.UseAuthorization();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
+
+// Bestenliste des Löschspiels (öffentlich, wie die Seite /loeschspiel).
+app.MapLoeschspielBestenliste();
 
 // Fotos sehen nur angemeldete Benutzer mit dem Recht Fotos.Lesen. Auch die Bilddateien selbst sind geschützt,
 // sonst käme man mit einem weitergegebenen Link ohne Anmeldung an sie heran. Die Dateinamen sind zufällige GUIDs und
