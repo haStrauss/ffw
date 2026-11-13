@@ -1,6 +1,4 @@
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Processing;
+using SkiaSharp;
 
 namespace ffw.Services;
 
@@ -14,6 +12,20 @@ public sealed class FotoSpeicher
     private const int MaxKanteGross = 2000;
     private const int MaxKanteVorschau = 480;
     private const long MaxPixel = 100_000_000;
+
+    /// <summary>
+    /// Nur diese Formate werden angenommen (dieselben, die die Foto-Seite zur Auswahl anbietet). Alles andere, auch
+    /// TIFF oder BMP, wird abgelehnt, bevor ein einziger Pixel dekodiert wird. Das hält die Angriffsfläche klein.
+    /// </summary>
+    private static readonly SKEncodedImageFormat[] ErlaubteFormate =
+    [
+        SKEncodedImageFormat.Jpeg,
+        SKEncodedImageFormat.Png,
+        SKEncodedImageFormat.Webp,
+        SKEncodedImageFormat.Gif,
+    ];
+
+    private static readonly SKSamplingOptions Verkleinerung = new(SKFilterMode.Linear, SKMipmapMode.Linear);
 
     public string Verzeichnis { get; }
 
@@ -35,47 +47,45 @@ public sealed class FotoSpeicher
     {
         using var puffer = new MemoryStream();
         await upload.CopyToAsync(puffer, ct);
+        puffer.Position = 0;
 
-        Image image;
-        try
-        {
-            puffer.Position = 0;
-            var info = await Image.IdentifyAsync(puffer, ct);
-            if ((long)info.Width * info.Height > MaxPixel)
-            {
-                return null;
-            }
-
-            puffer.Position = 0;
-            image = await Image.LoadAsync(puffer, ct);
-        }
-        catch (Exception ex) when (ex is UnknownImageFormatException or InvalidImageContentException or NotSupportedException)
+        // Zuerst wird nur der Dateikopf gelesen: Format und Größe stehen fest, bevor irgendein Pixel dekodiert wird.
+        using var codec = SKCodec.Create(puffer, out var ergebnis);
+        if (codec is null || ergebnis != SKCodecResult.Success || !ErlaubteFormate.Contains(codec.EncodedFormat))
         {
             return null;
         }
 
-        using (image)
+        var info = codec.Info;
+        if (info.Width <= 0 || info.Height <= 0 || (long)info.Width * info.Height > MaxPixel)
         {
-            image.Mutate(x => x.AutoOrient());
-
-            var id = Guid.NewGuid();
-            try
-            {
-                // Das Bild wird nacheinander verkleinert: erst Großansicht, dann (aus dieser) die Vorschau.
-                VerkleinernAufMaxKante(image, MaxKanteGross);
-                await image.SaveAsJpegAsync(PfadGross(id), new JpegEncoder { Quality = 85 }, ct);
-
-                VerkleinernAufMaxKante(image, MaxKanteVorschau);
-                await image.SaveAsJpegAsync(PfadVorschau(id), new JpegEncoder { Quality = 78 }, ct);
-            }
-            catch
-            {
-                Loeschen(id);
-                throw;
-            }
-
-            return id;
+            return null;
         }
+
+        using var quelle = SKBitmap.Decode(codec);
+        if (quelle is null)
+        {
+            return null;
+        }
+
+        // Die Großansicht wird aus dem Original erzeugt (verkleinert und nach den Kameradaten gedreht),
+        // die Vorschau danach aus der Großansicht.
+        using var gross = Aufbereiten(quelle, codec.EncodedOrigin, MaxKanteGross);
+        using var vorschau = Aufbereiten(gross, SKEncodedOrigin.TopLeft, MaxKanteVorschau);
+
+        var id = Guid.NewGuid();
+        try
+        {
+            SpeichernAlsJpeg(gross, PfadGross(id), qualitaet: 85);
+            SpeichernAlsJpeg(vorschau, PfadVorschau(id), qualitaet: 78);
+        }
+        catch
+        {
+            Loeschen(id);
+            throw;
+        }
+
+        return id;
     }
 
     public void Loeschen(Guid id)
@@ -93,17 +103,80 @@ public sealed class FotoSpeicher
         }
     }
 
-    /// <summary>Verkleinert das Bild direkt (ohne Kopie), falls eine Kante länger als maxKante ist. Vergrößert nie.</summary>
-    private static void VerkleinernAufMaxKante(Image bild, int maxKante)
+    /// <summary>
+    /// Verkleinert das Bild, falls eine Kante länger als maxKante ist (vergrößert nie), und dreht es so, dass es
+    /// aufrecht steht. Gibt immer ein neues, undurchsichtiges Bild zurück, das der Aufrufer freigibt.
+    /// </summary>
+    internal static SKBitmap Aufbereiten(SKBitmap quelle, SKEncodedOrigin ausrichtung, int maxKante)
     {
-        if (bild.Width <= maxKante && bild.Height <= maxKante)
+        SKBitmap? verkleinert = null;
+        try
         {
-            return;
-        }
+            var basis = quelle;
+            if (quelle.Width > maxKante || quelle.Height > maxKante)
+            {
+                var faktor = (double)maxKante / Math.Max(quelle.Width, quelle.Height);
+                var breite = Math.Max(1, (int)Math.Round(quelle.Width * faktor));
+                var hoehe = Math.Max(1, (int)Math.Round(quelle.Height * faktor));
+                verkleinert = quelle.Resize(new SKSizeI(breite, hoehe), Verkleinerung)
+                    ?? throw new InvalidOperationException("Das Bild konnte nicht verkleinert werden.");
+                basis = verkleinert;
+            }
 
-        var faktor = (double)maxKante / Math.Max(bild.Width, bild.Height);
-        var breite = Math.Max(1, (int)Math.Round(bild.Width * faktor));
-        var hoehe = Math.Max(1, (int)Math.Round(bild.Height * faktor));
-        bild.Mutate(x => x.Resize(breite, hoehe));
+            return Ausrichten(basis, ausrichtung);
+        }
+        finally
+        {
+            verkleinert?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Dreht bzw. spiegelt das Bild nach der EXIF-Ausrichtung (Werte 1 bis 8) und legt es auf weißen Grund,
+    /// denn JPEG kennt keine Transparenz. Gibt immer ein neues Bild zurück.
+    /// </summary>
+    internal static SKBitmap Ausrichten(SKBitmap bild, SKEncodedOrigin ausrichtung)
+    {
+        int w = bild.Width, h = bild.Height;
+        var hochkant = ausrichtung is SKEncodedOrigin.LeftTop or SKEncodedOrigin.RightTop
+            or SKEncodedOrigin.RightBottom or SKEncodedOrigin.LeftBottom;
+
+        var ziel = new SKBitmap(hochkant ? h : w, hochkant ? w : h, isOpaque: true);
+        try
+        {
+            using var leinwand = new SKCanvas(ziel);
+            leinwand.Clear(SKColors.White);
+            leinwand.SetMatrix(MatrixFuer(ausrichtung, w, h));
+            // Nearest: Es wird nur gedreht oder gespiegelt, nie skaliert. So bleibt jeder Pixel unverändert.
+            leinwand.DrawBitmap(bild, 0, 0, new SKSamplingOptions(SKFilterMode.Nearest));
+            return ziel;
+        }
+        catch
+        {
+            ziel.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>Wohin ein Pixel (x, y) des Originals wandert, damit das Bild aufrecht steht (w, h: Größe des Originals).</summary>
+    private static SKMatrix MatrixFuer(SKEncodedOrigin ausrichtung, int w, int h) => ausrichtung switch
+    {
+        SKEncodedOrigin.TopRight => new SKMatrix(-1, 0, w, 0, 1, 0, 0, 0, 1),
+        SKEncodedOrigin.BottomRight => new SKMatrix(-1, 0, w, 0, -1, h, 0, 0, 1),
+        SKEncodedOrigin.BottomLeft => new SKMatrix(1, 0, 0, 0, -1, h, 0, 0, 1),
+        SKEncodedOrigin.LeftTop => new SKMatrix(0, 1, 0, 1, 0, 0, 0, 0, 1),
+        SKEncodedOrigin.RightTop => new SKMatrix(0, -1, h, 1, 0, 0, 0, 0, 1),
+        SKEncodedOrigin.RightBottom => new SKMatrix(0, -1, h, -1, 0, w, 0, 0, 1),
+        SKEncodedOrigin.LeftBottom => new SKMatrix(0, 1, 0, -1, 0, w, 0, 0, 1),
+        _ => SKMatrix.CreateIdentity(),
+    };
+
+    private static void SpeichernAlsJpeg(SKBitmap bild, string pfad, int qualitaet)
+    {
+        using var datei = File.Create(pfad);
+        if (!bild.Encode(datei, SKEncodedImageFormat.Jpeg, qualitaet))
+        {
+            throw new IOException("Das Bild konnte nicht als JPEG gespeichert werden.");
+        }
     }
 }

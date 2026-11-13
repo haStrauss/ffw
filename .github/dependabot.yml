@@ -11,6 +11,9 @@ updates:
     schedule:
       interval: "weekly"
     groups:
+      # SkiaSharp und seine Linux-Bibliothek müssen immer dieselbe Version haben, deshalb ein gemeinsamer Pull Request.
+      skiasharp:
+        patterns: [ "SkiaSharp*" ]
       nuget:
         update-types: [ "minor", "patch" ]
 
