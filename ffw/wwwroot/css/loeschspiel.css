@@ -221,6 +221,134 @@ body {
             color: var(--muted);
         }
 
+/* Bestenliste: Namenseingabe nach dem Einsatz und die Top 10 */
+.eintrag {
+    margin: 0 0 14px;
+    padding: 12px;
+    background: rgba(46, 160, 67, 0.14);
+    border: 1px solid rgba(46, 160, 67, 0.55);
+    border-radius: 10px;
+}
+
+    .eintrag[hidden] {
+        display: none;
+    }
+
+    .eintrag label {
+        display: block;
+        margin-bottom: 8px;
+        line-height: 1.35;
+    }
+
+.eintrag-zeile {
+    display: flex;
+    gap: 8px;
+}
+
+    .eintrag-zeile input {
+        flex: 1;
+        min-width: 0;
+        padding: 10px 12px;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--rand);
+        border-radius: 10px;
+        color: var(--fg);
+        font: inherit;
+        /* mindestens 16px, sonst zoomt Safari auf dem iPhone beim Antippen in die Seite hinein */
+        font-size: 1rem;
+    }
+
+        .eintrag-zeile input:focus-visible {
+            outline: 2px solid var(--wasser);
+            outline-offset: 1px;
+        }
+
+    .eintrag-zeile .knopf {
+        background: var(--gruen);
+        border-color: transparent;
+        white-space: nowrap;
+    }
+
+        .eintrag-zeile .knopf:disabled {
+            background: var(--feld);
+        }
+
+.eintrag-fehler {
+    margin: 8px 0 0;
+    color: var(--warn);
+    font-size: 0.9rem;
+    line-height: 1.35;
+}
+
+    .eintrag-fehler[hidden] {
+        display: none;
+    }
+
+.bestenliste {
+    margin: 0 0 14px;
+}
+
+    .bestenliste[hidden] {
+        display: none;
+    }
+
+.bestenliste-leer {
+    color: var(--muted);
+}
+
+    .bestenliste-leer[hidden] {
+        display: none;
+    }
+
+.bestenliste-liste {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+    .bestenliste-liste li {
+        display: grid;
+        grid-template-columns: 2.2em minmax(0, 1fr) auto 3.6em;
+        gap: 8px;
+        align-items: baseline;
+        padding: 7px 8px;
+        border-bottom: 1px solid var(--rand);
+        font-variant-numeric: tabular-nums;
+    }
+
+        .bestenliste-liste li .platz {
+            color: var(--muted);
+        }
+
+        .bestenliste-liste li .name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 600;
+        }
+
+        .bestenliste-liste li .punkte {
+            font-weight: 700;
+            text-align: right;
+        }
+
+        .bestenliste-liste li .dauer {
+            color: var(--muted);
+            font-size: 0.9rem;
+            text-align: right;
+        }
+
+        .bestenliste-liste li:nth-child(-n+3) .platz {
+            color: var(--warn);
+            font-weight: 700;
+        }
+
+        /* der Eintrag, den der Spieler gerade gemacht hat */
+        .bestenliste-liste li.ich {
+            background: rgba(46, 160, 67, 0.22);
+            border-radius: 8px;
+        }
+
 /* Knöpfe */
 .knopf {
     padding: 10px 16px;
@@ -269,6 +397,11 @@ body {
     .knopf-gross:hover:not(:disabled) {
         background: var(--rot-hell);
     }
+
+.knopf-zweit {
+    width: 100%;
+    margin-top: 8px;
+}
 
 @keyframes puls {
     0%, 100% {
@@ -572,6 +705,21 @@ body {
 
     .knopf-gross {
         padding: 8px 12px;
+    }
+
+    .knopf-zweit {
+        margin-top: 6px;
+        padding: 6px 12px;
+    }
+
+    .bestenliste-liste li {
+        padding: 4px 8px;
+        font-size: 0.9rem;
+    }
+
+    .eintrag {
+        margin-bottom: 8px;
+        padding: 8px 10px;
     }
 
     .querformat-tipp {

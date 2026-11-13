@@ -18,6 +18,8 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
 
     public DbSet<Dokument> Dokumente => Set<Dokument>();
 
+    public DbSet<LoeschspielErgebnis> LoeschspielErgebnisse => Set<LoeschspielErgebnis>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -51,6 +53,13 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
              .WithMany(k => k.Dokumente)
              .HasForeignKey(d => d.KategorieId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<LoeschspielErgebnis>(e =>
+        {
+            e.Property(x => x.Name).IsRequired().HasMaxLength(20);
+            e.HasIndex(x => x.SpielId).IsUnique();
+            e.HasIndex(x => x.Punkte);
         });
     }
 }

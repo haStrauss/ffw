@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="~/css/loeschspiel.css" asp-append-version="true" />
 </head>
 <body>
-    <main class="app">
+    <main class="app" data-api="@Url.Content("~/loeschspiel/api")">
 
         <header class="kopf">
             <div class="titel">
@@ -52,9 +52,23 @@
                             <li><strong>Zu wenig Wasser:</strong> Der Strahl reicht nicht bis zum Brand, oder das Wasser verdampft, ohne zu löschen.</li>
                             <li><strong>Zu viel Wasser:</strong> Der Vorrat ist schnell leer, danach kommt nur noch ein Rinnsal.</li>
                             <li><strong>Punkte</strong> für gelöschte Brände bringen dir bessere Ausrüstung. Eine größere <strong>Spritze</strong> (D, C, B) liefert mehr Wasser, ein größerer <strong>Schlauch</strong> (D, C, B) erhöht die Reichweite.</li>
+                            <li><strong>Bestenliste:</strong> Wer nach dem Einsatz unter die besten zehn kommt, kann seinen Namen eintragen. Die Top 10 stehen unter &bdquo;Bestenliste ansehen&ldquo;.</li>
                         </ul>
                     </div>
+                    <form id="eintrag" class="eintrag" autocomplete="off" hidden>
+                        <label for="eintrag-name">Platz <strong id="eintrag-platz"></strong> in der Bestenliste! Trage deinen Namen ein:</label>
+                        <div class="eintrag-zeile">
+                            <input type="text" id="eintrag-name" maxlength="20" autocomplete="nickname" autocapitalize="words" spellcheck="false" placeholder="Dein Name" />
+                            <button type="submit" id="eintrag-senden" class="knopf">Eintragen</button>
+                        </div>
+                        <p class="eintrag-fehler" id="eintrag-fehler" role="alert" hidden></p>
+                    </form>
+                    <div id="bestenliste" class="bestenliste" hidden>
+                        <p class="bestenliste-leer" id="bestenliste-meldung" role="status"></p>
+                        <ol class="bestenliste-liste" id="bestenliste-liste"></ol>
+                    </div>
                     <button type="button" id="overlay-start" class="knopf knopf-gross">Einsatz starten</button>
+                    <button type="button" id="btn-bestenliste" class="knopf knopf-zweit">Bestenliste ansehen</button>
                 </div>
             </div>
         </div>
