@@ -1,7 +1,7 @@
 # Unter https://aka.ms/customizecontainer erfahren Sie, wie Sie Ihren Debugcontainer anpassen und wie Visual Studio dieses Dockerfile verwendet, um Ihre Images für ein schnelleres Debuggen zu erstellen.
 
 # Diese Stufe wird verwendet, wenn sie von VS im Schnellmodus ausgeführt wird (Standardeinstellung für Debugkonfiguration).
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS base
 # Verzeichnisse für hochgeladene Fotos und Dokumente: müssen dem Container-Benutzer gehören, damit das benannte Volume beschreibbar ist.
 RUN mkdir -p /app/data/fotos /app/data/dokumente /app/data/keys && chown -R $APP_UID /app/data
 USER $APP_UID
