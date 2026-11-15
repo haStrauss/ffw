@@ -30,7 +30,11 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
+          # Der Six-Labors-Lizenzschlüssel (ImageSharp) kommt aus dem GitHub-Secret und wird nur für diese Shell
+          # gesetzt; docker compose reicht ihn als Build-Secret an den Image-Build weiter. Eine Zeile in der
+          # .env auf dem Server ist dafür nicht nötig.
           script: |
             cd ~/FFW
             git pull origin main
+            export SIXLABORS_LICENSE_KEY='${{ secrets.SIXLABORS_LICENSE_KEY }}'
             docker compose up -d --build

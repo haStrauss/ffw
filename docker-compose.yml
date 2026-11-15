@@ -39,7 +39,8 @@ services:
     networks:
       - ffw-network
 
-# Lizenzschlüssel für ImageSharp, nur zum Bauen des Images (Variable in der .env auf dem Server bzw. in der Shell).
+# Lizenzschlüssel für ImageSharp, nur zum Bauen des Images. Beim Deployment setzt ihn deploy.yml in der Shell;
+# von Hand auf dem Server: export SIXLABORS_LICENSE_KEY='<ganze Lizenzzeile>' vor docker compose up --build.
 secrets:
   sixlabors_license:
     environment: SIXLABORS_LICENSE_KEY
