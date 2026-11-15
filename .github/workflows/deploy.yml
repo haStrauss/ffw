@@ -16,6 +16,8 @@ jobs:
   # Erst wenn alle Tests grün sind, kommt der Stand auf den Server.
   test:
     uses: ./.github/workflows/tests.yml
+    # Reicht u. a. SIXLABORS_LICENSE_KEY an die Tests weiter (Secrets gehen sonst nicht an aufgerufene Workflows).
+    secrets: inherit
 
   deploy:
     needs: test

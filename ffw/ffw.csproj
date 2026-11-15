@@ -8,6 +8,13 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
 
+  <!-- ImageSharp 4.x prüft beim Build eine Six-Labors-Lizenz (kostenlose Community-Lizenz von licensing.sixlabors.com).
+       Der Schlüssel kommt aus der Umgebungsvariable SIXLABORS_LICENSE_KEY und gehört nie ins Repository.
+       Ohne Variable greift Six Labors weiter auf eine lokale sixlabors.lic neben dieser Datei zurück. -->
+  <PropertyGroup Condition="'$(SIXLABORS_LICENSE_KEY)' != ''">
+    <SixLaborsLicenseKey>$(SIXLABORS_LICENSE_KEY)</SixLaborsLicenseKey>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.*" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />

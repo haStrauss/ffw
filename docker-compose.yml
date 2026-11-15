@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: ffw/Dockerfile
+      secrets:
+        - sixlabors_license
     container_name: web-container
     restart: unless-stopped
     ports:
@@ -36,6 +38,11 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - ffw-network
+
+# Lizenzschlüssel für ImageSharp, nur zum Bauen des Images (Variable in der .env auf dem Server bzw. in der Shell).
+secrets:
+  sixlabors_license:
+    environment: SIXLABORS_LICENSE_KEY
 
 networks:
   ffw-network:

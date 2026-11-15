@@ -40,8 +40,11 @@ jobs:
       - name: Wiederherstellen
         run: dotnet restore ffw.Tests/ffw.Tests.csproj
 
+      # ImageSharp 4.x verlangt beim Bauen eine Six-Labors-Lizenz (kostenlose Community-Lizenz als Repository-Secret).
       - name: Bauen
         run: dotnet build ffw.Tests/ffw.Tests.csproj --no-restore -c Release
+        env:
+          SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
 
       # Die Integrationstests starten PostgreSQL per Testcontainers (Docker ist auf ubuntu-latest vorhanden).
       - name: Testen
@@ -94,9 +97,14 @@ jobs:
 
       - name: docker-compose.yml ist gültig
         run: POSTGRES_PASSWORD=ci docker compose config --quiet
+        env:
+          SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
 
+      # Die Lizenz geht als Build-Secret in den Build (nicht als Build-Argument), damit sie nicht im Image landet.
       - name: Image bauen (so wie beim Deployment)
-        run: docker build -f ffw/Dockerfile -t ffw:ci .
+        run: docker build -f ffw/Dockerfile --secret id=sixlabors_license,env=SIXLABORS_LICENSE_KEY -t ffw:ci .
+        env:
+          SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
 
   live-pruefung:
     name: Live-Seite erreichbar und geschützt
