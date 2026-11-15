@@ -1,0 +1,56 @@
+name: Lizenz-Diagnose (temporär)
+
+# Nur zur Fehlersuche bei der Six-Labors-Lizenz. Gibt keine Werte aus, nur Struktur-Infos (Länge, Feldnamen).
+# Läuft nur, wenn diese Datei selbst in einem Pull Request geändert wird. Danach wieder löschen.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/lizenz-diagnose.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      DOTNET_CLI_UI_LANGUAGE: en
+      SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Aufbau des Secrets (ohne Werte)
+        run: |
+          v="$SIXLABORS_LICENSE_KEY"
+          echo "Zeichen insgesamt: ${#v}"
+          echo "Zeilenumbrüche im Wert: $(printf '%s' "$v" | tr -cd '\n' | wc -c)"
+          case "$v" in
+            \"*|\'*) echo "Beginnt mit Anführungszeichen: JA" ;;
+            *)       echo "Beginnt mit Anführungszeichen: nein" ;;
+          esac
+          echo "Felder (getrennt an Semikolons):"
+          printf '%s' "$v" | tr ';' '\n' | awk '{ if (match($0, /^[A-Za-z]+=/)) print "  " substr($0, 1, RLENGTH-1); else print "  (kein Feldname erkannt)" }'
+
+      - name: Wiederherstellen
+        run: dotnet restore ffw/ffw.csproj
+
+      - name: Was MSBuild aus dem Wert macht (nur Länge)
+        run: |
+          prop="$(dotnet msbuild ffw/ffw.csproj -getProperty:SixLaborsLicenseKey 2>/dev/null)"
+          echo "Zeichen in der MSBuild-Property: ${#prop}"
+          echo "Zeichen im Secret:               ${#SIXLABORS_LICENSE_KEY}"
+
+      - name: Build wie in der CI (Variable über die csproj)
+        continue-on-error: true
+        run: dotnet build ffw/ffw.csproj --no-restore -c Release
+
+      - name: Build mit Property auf der Kommandozeile (Semikolons maskiert)
+        continue-on-error: true
+        run: dotnet build ffw/ffw.csproj --no-restore -c Release "-p:SixLaborsLicenseKey=${SIXLABORS_LICENSE_KEY//;/%253B}"
