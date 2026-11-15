@@ -1,5 +1,8 @@
 .env
 
+# Six-Labors-Lizenz (ImageSharp): nie einchecken, das Repository ist öffentlich
+sixlabors.lic
+
 # Lokal hochgeladene Fotos (Entwicklung)
 ffw/data/
 
